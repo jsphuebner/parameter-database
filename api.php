@@ -24,10 +24,11 @@ if(isset($_GET['id']))
 		$data = $sqlDrv->arrayQuery("SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id");
 		echo json_encode($data);
 	}
+}
+else if(isset($_GET['mobile']))
+{
+	$QUERYLIMIT *= 3;
 
-}else{
-
-	//$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata LIMIT $OFFSET, $QUERYLIMIT");
 	$rows = $sqlDrv->arrayQuery("SELECT 
 	        `d`.`id` AS `id`,
 	        `m`.`metaitem` AS `metaitem`,
@@ -35,8 +36,7 @@ if(isset($_GET['id']))
 	    FROM
 	        (`pd_datasets` `d` JOIN `pd_metadata` `m`)
 	    WHERE
-	        (`d`.`metadata` = `m`.`setid`)  AND (`m`.`metaitem` IN (2 , 5, 6)) LIMIT $OFFSET, $QUERYLIMIT");
-
+	        (`d`.`metadata` = `m`.`setid`)  AND (`m`.`metaitem` IN (2 , 5, 6))  ORDER BY id ASC LIMIT $OFFSET, $QUERYLIMIT");
 	$lastId = 0;
 	$data = [];
 	
@@ -47,6 +47,26 @@ if(isset($_GET['id']))
 			array_push($data, ['id' => intval($row['id'])]);
 		}
 		$data[sizeof($data)-1] += [$row['metaitem'] => $row['value']];
+
+		$lastId = $row['id'];
+	}
+	
+	echo json_encode($data);
+}else{
+
+	$QUERYLIMIT *= 11;
+
+	$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata ORDER BY id ASC LIMIT $OFFSET, $QUERYLIMIT");
+	$lastId = 0;
+	$data = [];
+	
+	foreach ($rows as $row)
+	{
+		if ($lastId != $row['id'])
+		{
+			array_push($data, ['id' => intval($row['id'])]);
+		}
+		$data[sizeof($data)-1] += [$row['name'] => $row['value']];
 		
 		$lastId = $row['id'];
 	}

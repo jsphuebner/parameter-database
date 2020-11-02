@@ -14,6 +14,6 @@ if (!isset ($_config_included))
 	
 	date_default_timezone_set ("UTC");
 
-	$sqlDrv = new MySqlDriver(array(SQL_HOST => 'localhost', SQL_PORT => 3306, SQL_USER => '<user>', SQL_PASS => '<pass>', SQL_DB=> "<db>"));
+	$sqlDrv = new MySqlDriver(array(SQL_HOST => 'localhost', SQL_PORT => 3306, SQL_USER => 'partadmin', SQL_PASS => 'axellence', SQL_DB=> "storage"));
 }
 ?>

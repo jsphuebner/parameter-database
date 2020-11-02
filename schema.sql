@@ -25,6 +25,7 @@ create table pd_metadata (
 create table pd_parameters (
     id int NOT NULL AUTO_INCREMENT,
     fwindex int,
+    catindex int,
     category varchar(50) not null,
     name varchar(50) UNIQUE,
     unit varchar(500),
@@ -52,14 +53,16 @@ create view pd_datasetdescriptions AS
 select id,GROUP_CONCAT(m.value) description from pd_datasets d, pd_metadata m where d.metadata=m.setid and m.metaitem IN (2, 5, 6) group by d.id;
 
 create or replace view pd_namedata AS
-select setid, category, name, unit, value FROM pd_parameters p, pd_data d WHERE p.id=d.parameter ORDER BY p.id;
+select setid, category, name, unit, value FROM pd_parameters p, pd_data d WHERE p.id=d.parameter ORDER BY catindex, fwindex;
 
 create or replace view pd_namedmetadata as
 select d.id,i.name,i.question,m.value from pd_metadata m,pd_datasets d,pd_metaitems i WHERE m.setid=d.metadata AND i.id=m.metaitem;
 
 
---Some test queries
+
+#Some test queries
 select * from pd_namedmetadata;
+select * from pd_parameters;
 
 delete from pd_data where setid=6;
 delete from pd_datasets where id=6;

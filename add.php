@@ -41,16 +41,24 @@ if (isset($_POST['submit']))
 	$sqlDrv->query($sql);
 
 	$index = 0;
+	$catIndex = -1;
+	$lastCat = "";
 	foreach ($parameters as $name => $attributes)
 	{
 		if ($attributes->isparam && $attributes->category != "Testing")
 		{
-			$params[] = "('$attributes->category', $index, '$name', '$attributes->unit')";
+			if ($lastCat != $attributes->category)
+			{
+				$lastCat = $attributes->category;
+				$catIndex++;
+			}
+
+			$params[] = "('$attributes->category', $catIndex, $index, '$name', '$attributes->unit')";
 		}
 		$index++;
 	}
 	
-	$sql = "INSERT IGNORE pd_parameters (category, fwindex, name, unit) VALUES ".implode(",", $params);
+	$sql = "INSERT IGNORE pd_parameters (category, catindex, fwindex, name, unit) VALUES ".implode(",", $params);
 	$sqlDrv->query($sql);
 	$paramMap = $sqlDrv->mapQuery("SELECT id, name FROM pd_parameters", "name");
 	$sqlDrv->query("INSERT pd_datasets (metadata,notes) VALUES ($setId,'$notes')");
@@ -70,25 +78,25 @@ if (isset($_POST['submit']))
 
 	$sqlDrv->query("COMMIT");
 
-	echo "Done";
+	echo "Done. <a href='?page=showset&id=$dataId'>Show my parameter set</a>";
 }
 else
 {
 	$sql = "SELECT id, name, question FROM pd_metaitems WHERE question IS NOT NULL";
-	echo "<form method='POST'>";
+	echo "<form method='POST'>" . PHP_EOL;
 	foreach ($sqlDrv->arrayQuery($sql) as $row)
 	{
 		$id = $row['id'];
 		$q = $row['question'];
 		
-		echo "<label for='md$id'>$q</label><br>";
-		echo "<input type='text' id='md$id' name='md[$id]'/><br>";
+		echo "<label for='md$id'>$q</label><br>" . PHP_EOL;
+		echo "<input type='text' id='md$id' name='md[$id]'/><br>" . PHP_EOL;
 	}
-	echo "<label for='notes'>Notes</label><br><textarea id='notes' name='notes'></textarea>";
-	echo "<input type='hidden' name='data' value='$data'>";
-	echo "<input name='submit' type='submit'>";
+	echo "<label for='notes'>Notes</label><br><textarea id='notes' name='notes'></textarea>" . PHP_EOL;
+	echo "<input type='hidden' name='data' value='$data'><br>" . PHP_EOL;
+	echo "<input name='submit' type='submit'>" . PHP_EOL;
 
-	echo "<br>";
+	echo "</form><br>" . PHP_EOL;
 
 	foreach ($parameters as $name => $attributes)
 	{

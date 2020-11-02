@@ -21,8 +21,16 @@ class MySqlDriver implements DBDriver
 			echo "</pre>";
 			die ();
 		}
-		$this->lastStatement = $this->dbConn->select_db ($this->connInfo[SQL_DB]);
-		$this->CheckStmt ();
+		if ($this->dbConn->connect_error) {
+			if($this->connInfo[SQL_DB] === "localhost")
+			{
+				echo "Use mysqli connection \"127.0.0.1\" instead of \"localhost\"";
+			}
+         	echo $this->dbConn->connect_error;
+          	die ();
+     	}
+		$this->lastStatement = $this->dbConn->select_db($this->connInfo[SQL_DB]);
+		$this->CheckStmt();
 	}
 
 	function delimField($name)

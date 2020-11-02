@@ -20,6 +20,21 @@ if(isset($_GET['id']))
 	{
 		$metadata = $sqlDrv->mapQuery("SELECT name,value FROM pd_namedmetadata WHERE id=$id", "name");
 		echo json_encode($metadata);
+	}
+	else if(isset($_GET['download']))
+	{
+		$metadata = $sqlDrv->mapQuery("SELECT name,value FROM pd_namedmetadata WHERE id=$id", "name");
+		header ("Content-Disposition: attachment; filename=\"" . $metadata["Hardware Variant"] . "-" . $metadata["Version"] . "-" .$metadata["Motor Type"] . "-" .$metadata["Inverter Type"]. "-" . $metadata["Driven wheels"] . "-" . $metadata["Timestamp"] . ".json\"");
+
+		$rows = $sqlDrv->arrayQuery("SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id");
+		$data = [];
+
+		foreach ($rows as $row)
+		{
+			$data += [$row['name'] => $row['value']];
+		}
+		
+		echo json_encode($data);
 	}else{
 		$data = $sqlDrv->arrayQuery("SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id");
 		echo json_encode($data);

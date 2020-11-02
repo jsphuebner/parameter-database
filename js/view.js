@@ -7,14 +7,13 @@ document.addEventListener("DOMContentLoaded", function(event)
             var json = xhr.response;
             //console.log(json);
 
-			var table = document.getElementById('database-list');
+			var table = document.getElementById('parameter-list');
             var tbody = document.createElement('tbody');
 
             var category = [];
 
     		for(var key in json)
 	        {
-                //if(!category.includes(json[key].category)) //create table header
                 if(key == 0) //create table header
                 {
         			var row = document.createElement('thead');
@@ -31,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 
                 if(!category.includes(json[key].category)) //create table header
                 {
-                	console.log(json[key].category);
+                	//console.log(json[key].category);
                 	category.push(json[key].category);
 
                 	var row = document.createElement('tr');
@@ -51,7 +50,7 @@ document.addEventListener("DOMContentLoaded", function(event)
              	var i = 0;
                 for(var item in json[key])
 			    {
-			        console.log(json[key][item]);
+			        //console.log(json[key][item]);
 			        var col = document.createElement('td');
 			        if(i > 0) {
         				col.textContent = json[key][item];
@@ -67,4 +66,55 @@ document.addEventListener("DOMContentLoaded", function(event)
     };
     xhr.open('GET', 'api.php?' + window.location.search.substr(1), true);
     xhr.send();
+
+    var mxhr = new XMLHttpRequest();
+    mxhr.responseType = 'json';
+    mxhr.onload = function() {
+        if (mxhr.status == 200) {
+            var json = mxhr.response;
+            console.log(json);
+
+            var table = document.getElementById('parameter-metadata');
+            var tbody = document.createElement('tbody');
+
+            var keys = Object.keys(json);
+
+            for (i = 0; i < keys.length; i++)
+            {
+                var row = document.createElement('tr');
+      
+                //console.log(keys);
+                var col = document.createElement('td');
+
+                if(keys[i] == 'Userid') {
+                    var a = document.createElement('a');
+                    a.setAttribute('href', 'https://openinverter.org/forum/memberlist.php?mode=viewprofile&u=' + json[keys[i]]);
+                    a.textContent = 'User Profile';
+                    col.appendChild(a);
+                }else{
+                    col.textContent = keys[i];
+                }
+                row.appendChild(col);
+
+                var col = document.createElement('td');
+                col.textContent = json[keys[i]];
+                row.appendChild(col);
+                
+                tbody.appendChild(row);
+            }
+            table.appendChild(tbody);
+        }
+    };
+    mxhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&metadata=1', true);
+    mxhr.send();
 });
+
+function loadParameters()
+{
+
+}
+
+function downloadParameters()
+{
+    window.location.href = 'api.php?' + window.location.search.substr(1) + '&download=1';
+}

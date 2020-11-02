@@ -9,7 +9,24 @@
 		<div class="row"><hr/></div>
         <div class="row">
             <div class="col">
-    			<table class="table table-sm table-active bg-light table-bordered table-striped table-hover" id="database-list"></table>
+            	<table class="table table-sm table-active bg-light table-bordered table-striped table-hover" id="parameter-metadata"></table>
+                <hr/>
+            </div>
+        </div>
+        <div class="row mt-4"></div>
+        <div class="row" align="center">
+            <div class="col">
+                <button type="button" class="btn btn-success" onclick="loadParameters()"> Load to Inverter</button>
+            </div>
+            <div class="col">
+                <button type="button" class="btn btn-primary" onclick="downloadParameters()"> Download File</button>
+            </div>
+        </div>
+        <div class="row mt-4"></div>
+        <div class="row">
+            <div class="col">
+                <hr/>
+    			<table class="table table-sm table-active bg-light table-bordered table-striped table-hover" id="parameter-list"></table>
 			</div>
 		</div>
 	</div>

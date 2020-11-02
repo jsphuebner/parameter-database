@@ -45,6 +45,26 @@ if(isset($_GET['id']))
 		echo json_encode($data);
 	}
 }
+else if(isset($_POST['filter']))
+{
+	header('Content-Type: text/html');
+
+	$filter = [];
+	$md = $_POST['md'];
+	foreach ($md as $id => $value)
+	{
+		if($value != "")
+			$filter += [$id => $value];
+	}
+	$_SESSION['filter'] = $filter;
+
+	//echo json_encode($filter);
+	header('Location: index.html');
+}
+else if(isset($_GET['filter']))
+{
+	echo json_encode($_SESSION['filter']);
+}
 else if(isset($_POST['submit']))
 {
 	header('Content-Type: text/html');
@@ -200,9 +220,36 @@ else if(isset($_GET['mobile']))
 	echo json_encode($data);
 }else{
 
-	$QUERYLIMIT *= 11;
+	$sql = "SELECT id, name, value FROM pd_namedmetadata ";
+	
+	if(count($_SESSION['filter']) > 0)
+	{
+		$sqlFilter = "SELECT DISTINCT id FROM pd_namedmetadata ";
+		$index=0;
+		foreach ($_SESSION['filter'] as $id => $value)
+		{
+			if($index == 0) {
+				$sqlFilter .= "WHERE value LIKE '%" . $value . "%' ";
+			}else{
+				$sqlFilter .= "OR value LIKE '%" . $value . "%' ";
+			}
+			$index++;
+		}
+		$sqlFilter .= "LIMIT $OFFSET, $QUERYLIMIT";
+		//echo $sqlFilter;
 
-	$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata ORDER BY id ASC LIMIT $OFFSET, $QUERYLIMIT");
+		$dataId = $sqlDrv->arrayQuery($sqlFilter);
+		if(count($dataId) == 0) {
+			die("{}");
+		}else{
+			$sql .= " WHERE id IN (" . implode(",", $dataId[0]) . ") ";
+		}
+	}
+	
+	$sql .= "ORDER BY id ASC LIMIT $OFFSET, ". ($QUERYLIMIT * 10);
+	//echo $sql;
+
+	$rows = $sqlDrv->arrayQuery($sql);
 	$lastId = 0;
 	$data = [];
 	

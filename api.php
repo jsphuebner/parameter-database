@@ -1,4 +1,5 @@
 <?php
+session_start();
 header('Content-Type: application/json');
 require ('config.inc.php');
 
@@ -19,6 +20,10 @@ if(isset($_GET['id']))
 	if(isset($_GET['metadata']))
 	{
 		$metadata = $sqlDrv->mapQuery("SELECT name,value FROM pd_namedmetadata WHERE id=$id", "name");
+		$notes = $sqlDrv->scalarQuery("SELECT notes from pd_datasets WHERE id=$id");
+		$notes = str_replace("\n", "<br>\n", $notes);
+		$metadata += ['Notes' => $notes];
+
 		echo json_encode($metadata);
 	}
 	else if(isset($_GET['download']))
@@ -39,6 +44,132 @@ if(isset($_GET['id']))
 		$data = $sqlDrv->arrayQuery("SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id");
 		echo json_encode($data);
 	}
+}
+else if(isset($_POST['submit']))
+{
+	header('Content-Type: text/html');
+
+	define('IN_PHPBB', true);
+	$phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : '../forum/';
+	$phpEx = substr(strrchr(__FILE__, '.'), 1);
+	include($phpbb_root_path . 'common.' . $phpEx);
+	 
+	// Start session management
+	$user->session_begin();
+	$auth->acl($user->data);
+	$user->setup();
+	$userId = $user->data['user_id'];
+
+	if ($userId < 2)
+	{
+		die('Authentication Timeout');
+	}
+
+	$request->enable_super_globals();
+	$data = json_encode($_SESSION['data']);
+	$parameters = json_decode($data);
+
+	$md = $_POST['md'];
+	$notes = $_POST['notes'];
+	
+	$sqlDrv->query("START TRANSACTION");
+	$setId = $sqlDrv->scalarQuery("SELECT MAX(setid) FROM pd_metadata") + 1;
+	$sql = "INSERT pd_metadata (setid, metaitem, value) VALUES ";
+
+	foreach ($md as $id => $value)
+	{
+		$sql.= "($setId, $id, '$value'),";
+	}
+	$swVer = $parameters->version->enums[$parameters->version->value];
+	$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
+	$sql .= "($setId, 1, '$swVer'),";
+	$sql .= "($setId, 3, '$hwVer'),";
+	$sql .= "($setId, 2, NOW()),";
+	$sql .= "($setId, 4, $userId)";
+	$sqlDrv->query($sql);
+
+	$index = 0;
+	$catIndex = -1;
+	$lastCat = "";
+	foreach ($parameters as $name => $attributes)
+	{
+		if ($attributes->isparam && $attributes->category != "Testing")
+		{
+			if ($lastCat != $attributes->category)
+			{
+				$lastCat = $attributes->category;
+				$catIndex++;
+			}
+
+			$params[] = "('$attributes->category', $catIndex, $index, '$name', '$attributes->unit')";
+		}
+		$index++;
+	}
+	
+	$sql = "INSERT IGNORE pd_parameters (category, catindex, fwindex, name, unit) VALUES ".implode(",", $params);
+	$sqlDrv->query($sql);
+	$paramMap = $sqlDrv->mapQuery("SELECT id, name FROM pd_parameters", "name");
+	$sqlDrv->query("INSERT pd_datasets (metadata,notes) VALUES ($setId,'$notes')");
+	$dataId = $sqlDrv->scalarQuery("SELECT LAST_INSERT_ID()");
+
+	foreach ($parameters as $name => $attributes)
+	{
+		if ($attributes->isparam && $attributes->category != "Testing")
+		{
+			$paramId = $paramMap[$name];
+			$values[] = "($dataId, $paramId, $attributes->value)";
+		}
+	}
+	
+	$sql = "INSERT IGNORE pd_data (setid, parameter, value) VALUES ".implode(",", $values);
+	$sqlDrv->query($sql);
+
+	$sqlDrv->query("COMMIT");
+
+	unset($_SESSION['data']);
+
+	echo "Done. <a href='view.html&id=$dataId'>Show my parameter set</a>";
+}
+else if(isset($_GET['submit']))
+{
+    echo json_encode($_SESSION['data']);
+}
+else if(isset($_POST['data']))
+{
+	header('Content-Type: text/html');
+
+	//unset($_SESSION['data']);
+	$_SESSION['data'] = json_decode($_POST['data']); //$_POST['data'];
+	
+	define('IN_PHPBB', true);
+	$phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : '../forum/';
+	$phpEx = substr(strrchr(__FILE__, '.'), 1);
+	include($phpbb_root_path . 'common.' . $phpEx);
+	 
+	// Start session management
+	$user->session_begin();
+	$auth->acl($user->data);
+	$user->setup();
+	$userId = $user->data['user_id'];
+
+	if ($userId < 2)
+	{
+		die('You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=/parameters/add.html">login to the forum</a>, then try again.');
+	}
+	
+	header('Location: add.html');
+}
+else if(isset($_GET['questions']))
+{
+	$sql = "SELECT id, name, question FROM pd_metaitems WHERE question IS NOT NULL";
+	$data = [];
+
+	foreach ($sqlDrv->arrayQuery($sql) as $row)
+	{
+		$data += [$row['id'] => stripslashes($row['question'])];
+	}
+	
+	echo json_encode($data);
 }
 else if(isset($_GET['mobile']))
 {

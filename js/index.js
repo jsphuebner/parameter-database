@@ -56,4 +56,41 @@ document.addEventListener("DOMContentLoaded", function(event)
     };
     xhr.open('GET', 'api.php', true);
     xhr.send();
+
+    var fxhr = new XMLHttpRequest();
+    fxhr.responseType = 'json';
+    fxhr.onload = function() {
+        if (fxhr.status == 200) {
+            var json = fxhr.response;
+            //console.log(json);
+
+			var form = document.getElementById('database-filter');
+
+    		for(var key in json)
+	        {
+	            console.log(key);
+        
+        		var fieldset = document.createElement('div');
+            	fieldset.className = 'form-group';
+
+		        var input = document.createElement('input');
+                input.className = 'form-control mb-3';
+		        input.setAttribute('type', 'text');
+                input.setAttribute('name', 'md[' + key + "]");
+                input.setAttribute('id', 'md' + key);
+		        input.setAttribute('placeholder', json[key]);
+    			fieldset.appendChild(input);
+    			form.appendChild(fieldset);
+	        }
+
+    		var submit = document.createElement('button');
+            submit.setAttribute('type', 'submit');
+            submit.setAttribute('name', 'submit');
+			submit.className = 'btn btn-primary';
+			submit.textContent = 'Filter Results';
+			form.appendChild(submit);
+        }
+    };
+    fxhr.open('GET', 'api.php?questions=1', true);
+    fxhr.send();
 });

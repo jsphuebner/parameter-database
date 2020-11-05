@@ -65,25 +65,25 @@ else if(isset($_GET['filter']))
 {
 	echo json_encode($_SESSION['filter']);
 }
+else if(isset($_GET['remove']) && isset($_GET['id']))
+{
+	header('Content-Type: text/html');
+
+	$userId = phpBBAuthenticate();
+
+	if($userId != $_GET['id'])
+	{
+		die('Authentication Error');
+	}
+
+	$sqlDrv->query("DELETE FROM pd_data WHERE setid=" .$userId);
+	$sqlDrv->query("DELETE FROM pd_datasets WHERE id=" .$userId);
+}
 else if(isset($_POST['submit']))
 {
 	header('Content-Type: text/html');
 
-	define('IN_PHPBB', true);
-	$phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : '../forum/';
-	$phpEx = substr(strrchr(__FILE__, '.'), 1);
-	include($phpbb_root_path . 'common.' . $phpEx);
-	 
-	// Start session management
-	$user->session_begin();
-	$auth->acl($user->data);
-	$user->setup();
-	$userId = $user->data['user_id'];
-
-	if ($userId < 2)
-	{
-		die('Authentication Timeout');
-	}
+	phpBBAuthenticate();
 
 	$request->enable_super_globals();
 	$data = json_encode($_SESSION['data']);
@@ -161,21 +161,7 @@ else if(isset($_POST['data']))
 	//unset($_SESSION['data']);
 	$_SESSION['data'] = json_decode($_POST['data']); //$_POST['data'];
 	
-	define('IN_PHPBB', true);
-	$phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : '../forum/';
-	$phpEx = substr(strrchr(__FILE__, '.'), 1);
-	include($phpbb_root_path . 'common.' . $phpEx);
-	 
-	// Start session management
-	$user->session_begin();
-	$auth->acl($user->data);
-	$user->setup();
-	$userId = $user->data['user_id'];
-
-	if ($userId < 2)
-	{
-		die('You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=/parameters/add.html">login to the forum</a>, then try again.');
-	}
+	phpBBAuthenticate();
 	
 	header('Location: add.html');
 }
@@ -222,7 +208,7 @@ else if(isset($_GET['mobile']))
 
 	$sql = "SELECT id, name, value FROM pd_namedmetadata ";
 	
-	if(count($_SESSION['filter']) > 0)
+	if(isset($_SESSION['filter']))
 	{
 		$sqlFilter = "SELECT DISTINCT id FROM pd_namedmetadata ";
 		$index=0;
@@ -265,6 +251,27 @@ else if(isset($_GET['mobile']))
 	}
 	
 	echo json_encode($data);
+}
+
+function phpBBAuthenticate()
+{
+    define('IN_PHPBB', true);
+	$phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : '../forum/';
+	$phpEx = substr(strrchr(__FILE__, '.'), 1);
+	include($phpbb_root_path . 'common.' . $phpEx);
+	 
+	// Start session management
+	$user->session_begin();
+	$auth->acl($user->data);
+	$user->setup();
+	$userId = $user->data['user_id'];
+
+	if ($userId < 2)
+	{
+		die('You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=/parameters/add.html">login to the forum</a>, then try again.');
+	}
+
+	return $userId;
 }
 
 ?>

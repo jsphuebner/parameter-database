@@ -9,6 +9,15 @@ document.addEventListener("DOMContentLoaded", function(event)
 
 			var table = document.getElementById('database-list');
             var tbody = document.createElement('tbody');
+            
+            if(Object.keys(json).length == 0)
+            {
+                var row = document.createElement('tr');
+                var col = document.createElement('td');
+                col.textContent = "No Results";
+                row.appendChild(col);
+                tbody.appendChild(row);
+            }
 
     		for(var key in json)
 	        {
@@ -74,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function(event)
                     var form = document.getElementById('database-filter');
                     for(var key in json)
                     {
-                        console.log(key);
+                        //console.log(key);
                 
                         var fieldset = document.createElement('div');
                         fieldset.className = 'form-group';
@@ -85,9 +94,9 @@ document.addEventListener("DOMContentLoaded", function(event)
                         input.setAttribute('name', 'md[' + key + "]");
                         input.setAttribute('id', 'md' + key);
                         input.setAttribute('placeholder', json[key]);
-                        if(filter[key] != undefined) {
-                            input.setAttribute('value', filter[key]);
-                        }
+                        if(filter != null)
+                            if(filter[key] != undefined)
+                                input.setAttribute('value', filter[key]);
                         fieldset.appendChild(input);
                         form.appendChild(fieldset);
                     }

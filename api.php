@@ -54,12 +54,30 @@ if(isset($_GET['id']))
 			$data += [$row['name'] => $row['value']];
 		}
 
-		header('Content-Type: application/json');
 		echo json_encode($data);
+	}
+	else if(isset($_GET['remove']))
+	{
+		header('Content-Type: text/html');
+
+		if (!$user->data['is_registered']) {
+			die($loginRedirect);
+		}
+
+		$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_namedmetadata WHERE name='Userid' AND value=" .$user->data['user_id']);
+
+		if (in_array($id, $dataId[0])) { //verify it belongs to user
+			$sqlDrv->query("DELETE FROM pd_data WHERE setid=" .$id);
+			$sqlDrv->query("DELETE FROM pd_datasets WHERE id=" .$id);
+
+			echo "Parameter ID: " .$id. " Deleted. <a href='my.html'>Back to My Profile</a>";
+		}else{
+			header('Location: my.html');
+		}
+
 	}else{
 		$data = $sqlDrv->arrayQuery("SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id");
 
-		header('Content-Type: application/json');
 		echo json_encode($data);
 	}
 }
@@ -81,16 +99,6 @@ else if(isset($_POST['filter']))
 else if(isset($_GET['filter']))
 {
 	echo json_encode($_SESSION['filter']);
-}
-else if(isset($_GET['remove']) && isset($_GET['id']))
-{
-	header('Content-Type: text/html');
-
-	if (!$user->data['is_registered']) {
-		die($loginRedirect);
-	}
-	$sqlDrv->query("DELETE FROM pd_data WHERE setid=" .$user->data['user_id']);
-	$sqlDrv->query("DELETE FROM pd_datasets WHERE id=" .$user->data['user_id']);
 }
 else if(isset($_POST['submit']))
 {

@@ -2,6 +2,8 @@ create table pd_metaitems (
 	id int NOT NULL AUTO_INCREMENT,
     name varchar(100),
     question varchar(200),
+    type varchar(50),
+    options varchar(500),
     PRIMARY KEY (`id`)
 );
 
@@ -58,11 +60,12 @@ select setid, category, name, unit, value FROM pd_parameters p, pd_data d WHERE 
 create or replace view pd_namedmetadata as
 select d.id,i.name,i.question,m.value from pd_metadata m,pd_datasets d,pd_metaitems i WHERE m.setid=d.metadata AND i.id=m.metaitem;
 
-
+update pd_metaitems set type='numeric', options='' where id in (7,8);
 
 #Some test queries
 select * from pd_namedmetadata;
 select * from pd_parameters;
+select * from pd_metaitems;
 
 delete from pd_data where setid=6;
 delete from pd_datasets where id=6;

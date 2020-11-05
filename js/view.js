@@ -105,16 +105,25 @@ document.addEventListener("DOMContentLoaded", function(event)
             table.appendChild(tbody);
         }
     };
-    mxhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&metadata=1', true);
+    mxhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&metadata', true);
     mxhr.send();
 });
 
 function loadParameters()
 {
-
+    var xhr = new XMLHttpRequest();
+    xhr.responseType = 'json';
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+            var json = xhr.response;
+            console.log(json);
+        }
+    };
+    xhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&download&inverter', true);
+    xhr.send();
 }
 
 function downloadParameters()
 {
-    window.location.href = 'api.php?' + window.location.search.substr(1) + '&download=1';
+    window.location.href = 'api.php?' + window.location.search.substr(1) + '&download';
 }

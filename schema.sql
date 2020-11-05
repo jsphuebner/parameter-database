@@ -8,13 +8,13 @@ create table pd_metaitems (
 );
 
 insert pd_metaitems (name) values ("Version"),("Timestamp"),("Hardware Variant"),("Userid");
-insert pd_metaitems (name,question) values ("Motor Type","Which motor are you using?"),
-("Inverter Type","Which Inverter are you using?"),
-("Battery Voltage", "What is your nominal battery voltage?"),
-("Vehicle weight", "What is the weight of your vehicle in kg?"),
-("Driven wheels", "What are the driven wheels (FWD, RWD, AWD)?"),
-("Tuning Goal", "What is your tuning goal (street/track, smooth/aggressive etc.)"),
-("Throttle Pot","Which throttle pedal are you using?");
+insert pd_metaitems (name,question,type,options) values ("Motor Type","Which motor are you using?","text",null),
+("Inverter Type","Which Inverter are you using?","select", "Hardware v1,Hardware v2,Hardware v3,Blue-Pill,Nissan Leaf Gen1,Nissan Leaf Gen2, Nissan Leaf Gen3,Tesla SDU,Tesla LDU,Toyota Prius Gen2,Ford Ranger,Mitsubishi,BMW,DIY Custom"),
+("Battery Voltage", "What is your nominal battery voltage?","numeric",null),
+("Vehicle Weight", "What is the weight of your vehicle in kg?","numeric",null),
+("Driven Wheels", "What are the driven wheels?","select","FWD,RWD,AWD"),
+("Tuning Goal", "What is your tuning goal?","checkbox","Street,Track,Smooth,Aggressive"),
+("Throttle Pot","Which throttle pedal are you using?","text",null);
 
 create table pd_metadata (
     setid int NOT NULL,

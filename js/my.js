@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 			        var col = document.createElement('td');
 			        if(i == 0) {
 			        	var a = document.createElement('a');
-			        	a.setAttribute('href', 'api.php?remove=1&id=' + json[key][item]);
+			        	a.setAttribute('href', 'api.php?remove&id=' + json[key][item]);
 			        	a.textContent = 'Delete'; //json[key][item];
 			        	col.appendChild(a);
 			        	id = json[key][item];

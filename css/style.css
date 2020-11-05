@@ -1,0 +1,22 @@
+input[type=checkbox]
+{
+  /* Double-sized Checkboxes */
+  -ms-transform: scale(2); /* IE */
+  -moz-transform: scale(2); /* FF */
+  -webkit-transform: scale(2); /* Safari and Chrome */
+  -o-transform: scale(2); /* Opera */
+  padding: 10px;
+}
+
+.form-control-lg .form-check-label-lg::before,
+.form-control-lg .form-check-label-lg::after {
+    top: 0.1rem !important;
+    left: -2rem !important;
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+}
+
+.form-control-lg .form-check-label-lg {
+    margin-left: 0.8rem !important;
+    font-size: 1rem !important;
+}

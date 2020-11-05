@@ -14,7 +14,7 @@ $auth->acl($user->data);
 $user->setup();
 
 $request->enable_super_globals();
-$loginRedirect = 'You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=' . $_SERVER['HTTP_REFERER'] . '">login to the forum</a>, then try again.';
+$loginRedirect = 'You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=' . $_SERVER['REQUEST_URI'] . '">login to the forum</a>, then try again.';
 
 require ('config.inc.php');
 
@@ -87,12 +87,17 @@ else if(isset($_POST['filter']))
 
 	$filter = [];
 	$md = $_POST['md'];
+
 	foreach ($md as $id => $value)
 	{
 		if($value != "")
 			$filter += [$id => $value];
 	}
-	$_SESSION['filter'] = $filter;
+	if (empty($filter)) {
+		unset($_SESSION['filter']);
+	}else{
+		$_SESSION['filter'] = $filter;
+	}
 	
 	header('Location: index.html');
 }
@@ -128,7 +133,7 @@ else if(isset($_POST['submit']))
 	$sql .= "($setId, 1, '$swVer'),";
 	$sql .= "($setId, 3, '$hwVer'),";
 	$sql .= "($setId, 2, NOW()),";
-	$sql .= "($setId, 4, $userId)";
+	$sql .= "($setId, 4, ". $user->data['user_id']. ")";
 	$sqlDrv->query($sql);
 
 	$index = 0;
@@ -171,7 +176,7 @@ else if(isset($_POST['submit']))
 
 	unset($_SESSION['data']);
 
-	echo "Done. <a href='view.html&id=$dataId'>Show my parameter set</a>";
+	echo "Done. <a href='my.html'>My Parameters</a>";
 }
 else if(isset($_GET['submit']))
 {
@@ -185,6 +190,7 @@ else if(isset($_POST['data']))
 	$_SESSION['data'] = json_decode($_POST['data']); //$_POST['data'];
 
 	if (!$user->data['is_registered']) {
+		$loginRedirect = str_replace('api.php', 'add.html', $loginRedirect);
 		die($loginRedirect);
 	}
 	
@@ -192,12 +198,12 @@ else if(isset($_POST['data']))
 }
 else if(isset($_GET['questions']))
 {
-	$sql = "SELECT id, name, question FROM pd_metaitems WHERE question IS NOT NULL";
+	$sql = "SELECT id, name, question, type, options FROM pd_metaitems WHERE question IS NOT NULL";
 	$data = [];
 
 	foreach ($sqlDrv->arrayQuery($sql) as $row)
 	{
-		$data += [$row['id'] => stripslashes($row['question'])];
+		array_push($data,[$row['id'] => stripslashes($row['question']),'type' => $row['type'],'options' => $row['options']]);
 	}
 
 	echo json_encode($data);

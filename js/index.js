@@ -81,25 +81,8 @@ document.addEventListener("DOMContentLoaded", function(event)
                     //console.log(filter);
 
                     var form = document.getElementById('database-filter');
-                    for(var key in json)
-                    {
-                        //console.log(key);
-                
-                        var fieldset = document.createElement('div');
-                        fieldset.className = 'form-group';
 
-                        var input = document.createElement('input');
-                        input.className = 'form-control mb-3';
-                        input.setAttribute('type', 'text');
-                        input.setAttribute('name', 'md[' + key + "]");
-                        input.setAttribute('id', 'md' + key);
-                        input.setAttribute('placeholder', json[key]);
-                        if(filter != null)
-                            if(filter[key] != undefined)
-                                input.setAttribute('value', filter[key]);
-                        fieldset.appendChild(input);
-                        form.appendChild(fieldset);
-                    }
+                    buildQuestionForm(json,form, filter);
 
                     var submit = document.createElement('button');
                     submit.setAttribute('type', 'submit');
@@ -109,10 +92,10 @@ document.addEventListener("DOMContentLoaded", function(event)
                     form.appendChild(submit);
                 }
             };
-            ffxhr.open('GET', 'api.php?filter=1', true);
+            ffxhr.open('GET', 'api.php?filter', true);
             ffxhr.send();
         }
     };
-    fxhr.open('GET', 'api.php?questions=1', true);
+    fxhr.open('GET', 'api.php?questions', true);
     fxhr.send();
 });

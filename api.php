@@ -1,6 +1,21 @@
 <?php
 session_start();
 header('Content-Type: application/json');
+
+define('IN_PHPBB', true);
+
+$phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : '../forum/';
+$phpEx = substr(strrchr(__FILE__, '.'), 1);
+include($phpbb_root_path . 'common.' . $phpEx);
+
+// Start session management
+$user->session_begin();
+$auth->acl($user->data);
+$user->setup();
+
+$request->enable_super_globals();
+$loginRedirect = 'You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=' . $_SERVER['HTTP_REFERER'] . '">login to the forum</a>, then try again.';
+
 require ('config.inc.php');
 
 $sqlDrv->connect();
@@ -38,10 +53,13 @@ if(isset($_GET['id']))
 		{
 			$data += [$row['name'] => $row['value']];
 		}
-		
+
+		header('Content-Type: application/json');
 		echo json_encode($data);
 	}else{
 		$data = $sqlDrv->arrayQuery("SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id");
+
+		header('Content-Type: application/json');
 		echo json_encode($data);
 	}
 }
@@ -57,8 +75,7 @@ else if(isset($_POST['filter']))
 			$filter += [$id => $value];
 	}
 	$_SESSION['filter'] = $filter;
-
-	//echo json_encode($filter);
+	
 	header('Location: index.html');
 }
 else if(isset($_GET['filter']))
@@ -69,21 +86,19 @@ else if(isset($_GET['remove']) && isset($_GET['id']))
 {
 	header('Content-Type: text/html');
 
-	$userId = phpBBAuthenticate();
-
-	if($userId != $_GET['id'])
-	{
-		die('Authentication Error');
+	if (!$user->data['is_registered']) {
+		die($loginRedirect);
 	}
-
-	$sqlDrv->query("DELETE FROM pd_data WHERE setid=" .$userId);
-	$sqlDrv->query("DELETE FROM pd_datasets WHERE id=" .$userId);
+	$sqlDrv->query("DELETE FROM pd_data WHERE setid=" .$user->data['user_id']);
+	$sqlDrv->query("DELETE FROM pd_datasets WHERE id=" .$user->data['user_id']);
 }
 else if(isset($_POST['submit']))
 {
 	header('Content-Type: text/html');
 
-	phpBBAuthenticate();
+	if (!$user->data['is_registered']) {
+		die($loginRedirect);
+	}
 
 	$request->enable_super_globals();
 	$data = json_encode($_SESSION['data']);
@@ -160,8 +175,10 @@ else if(isset($_POST['data']))
 
 	//unset($_SESSION['data']);
 	$_SESSION['data'] = json_decode($_POST['data']); //$_POST['data'];
-	
-	phpBBAuthenticate();
+
+	if (!$user->data['is_registered']) {
+		die($loginRedirect);
+	}
 	
 	header('Location: add.html');
 }
@@ -174,7 +191,7 @@ else if(isset($_GET['questions']))
 	{
 		$data += [$row['id'] => stripslashes($row['question'])];
 	}
-	
+
 	echo json_encode($data);
 }
 else if(isset($_GET['mobile']))
@@ -204,6 +221,32 @@ else if(isset($_GET['mobile']))
 	}
 	
 	echo json_encode($data);
+}
+else if(isset($_GET['my']))
+{
+	if (!$user->data['is_registered']) {
+		header('Content-Type: text/html');
+		die($loginRedirect);
+	}
+
+	$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_namedmetadata WHERE name='Userid' AND value=" .$user->data['user_id']);
+	$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE id IN (" . implode(",", $dataId[0]) . ")");
+	$lastId = 0;
+	$data = [];
+	
+	foreach ($rows as $row)
+	{
+		if ($lastId != $row['id'])
+		{
+			array_push($data, ['id' => intval($row['id'])]);
+		}
+		$data[sizeof($data)-1] += [$row['name'] => $row['value']];
+		
+		$lastId = $row['id'];
+	}
+
+	echo json_encode($data);
+
 }else{
 
 	$sql = "SELECT id, name, value FROM pd_namedmetadata ";
@@ -249,29 +292,8 @@ else if(isset($_GET['mobile']))
 		
 		$lastId = $row['id'];
 	}
-	
+
 	echo json_encode($data);
-}
-
-function phpBBAuthenticate()
-{
-    define('IN_PHPBB', true);
-	$phpbb_root_path = (defined('PHPBB_ROOT_PATH')) ? PHPBB_ROOT_PATH : '../forum/';
-	$phpEx = substr(strrchr(__FILE__, '.'), 1);
-	include($phpbb_root_path . 'common.' . $phpEx);
-	 
-	// Start session management
-	$user->session_begin();
-	$auth->acl($user->data);
-	$user->setup();
-	$userId = $user->data['user_id'];
-
-	if ($userId < 2)
-	{
-		die('You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=/parameters/add.html">login to the forum</a>, then try again.');
-	}
-
-	return $userId;
 }
 
 ?>

@@ -19,7 +19,7 @@ function buildQuestionForm(json,form,filter)
                 input.setAttribute('placeholder', json[index][key]);
                 if(filter != null)
                     if(filter[key] != undefined)
-                        input.setAttribute('value', filter[key]);
+                        input.value = filter[key];
                 fieldset.appendChild(input);
             }
             else if(json[index]['type'] === 'select')
@@ -66,6 +66,9 @@ function buildQuestionForm(json,form,filter)
                 input.setAttribute('type', 'hidden');
                 input.setAttribute('name', 'md[' + key + "]");
                 input.setAttribute('id', 'md' + key);
+                if(filter != null)
+                    if(filter[key] != undefined)
+                        input.value = filter[key];
                 fieldset.appendChild(input);
                 
                 json[index]['options'].split(',').forEach(function (item) {
@@ -76,10 +79,27 @@ function buildQuestionForm(json,form,filter)
                     var checkbox = document.createElement('input');
                     checkbox.className = 'form-check-input';
                     checkbox.setAttribute('type', 'checkbox');
+                    checkbox.setAttribute('id', '_md' + key);
                     checkbox.value = item;
                     if(filter != null)
                         if(filter[key] != undefined)
-                            checkbox.checked = true;
+                        	if (filter[key].indexOf(item) !=-1)
+                            	checkbox.checked = true;
+
+                    checkbox.onclick = function()
+                    {
+                    	var h = document.getElementById(this.id.substring(1));
+                    	if(this.checked) {
+                    		h.value += ',' + item;
+                    	}else{
+                    		h.value = h.value.replace(',' + this.value, '');
+                    		h.value = h.value.replace(this.value + ',', '');
+                    		h.value = h.value.replace(this.value, '');
+                    	}
+                    	if(h.value.charAt(0) === ',')
+							h.value = h.value.substring(1);
+                    	//console.log(h.value);
+					};
 
                     var label = document.createElement('label');
                     label.className = 'form-check-label';

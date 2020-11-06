@@ -42,6 +42,16 @@ create table pd_datasets (
     foreign key (metadata) references pd_metadata(setid)
 );
 
+create table pd_rating (
+    id int NOT NULL AUTO_INCREMENT,
+    datasetid int NOT NULL,
+    rating decimal(5,2) NOT NULL,
+    stamp timestamp DEFAULT CURRENT_TIMESTAMP,
+    ip varchar(45),
+    primary key(id),
+    foreign key (datasetid) references pd_datasets(id)
+);
+
 create table pd_data (
     setid int NOT NULL,
     parameter int not null,

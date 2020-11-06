@@ -43,13 +43,13 @@ create table pd_datasets (
 );
 
 create table pd_rating (
-    id int NOT NULL AUTO_INCREMENT,
-    datasetid int NOT NULL,
+    id int NOT NULL,
     rating decimal(5,2) NOT NULL,
+    count int NOT NULL AUTO_INCREMENT,
     stamp timestamp DEFAULT CURRENT_TIMESTAMP,
     ip varchar(45),
     primary key(id),
-    foreign key (datasetid) references pd_datasets(id)
+    foreign key (id) references pd_datasets(id)
 );
 
 create table pd_data (

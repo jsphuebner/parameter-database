@@ -32,7 +32,44 @@ if(isset($_GET['id']))
 {
 	$id = $_GET['id'];
 
-	if(isset($_GET['metadata']))
+	if(isset($_GET['rating']))
+	{
+		$data = $sqlDrv->arrayQuery("SELECT rating, count, stamp, ip FROM pd_rating WHERE id=$id");
+		$rating = $_GET['rating'];
+		$count = intval($data[0]["count"]);
+
+		if (empty($rating)) {
+			echo json_encode(['rating' => floatval($data[0]["rating"]),'count' => $count]);
+		}else{
+
+			if(isset($_SESSION['rating-'. $id])) {
+				$rating = -1;
+			}else{
+
+				if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+				    $ip = $_SERVER['HTTP_CLIENT_IP'];
+				}else if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+				    $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+				} else {
+				    $ip = $_SERVER['REMOTE_ADDR'];
+				}
+
+				$sqlDrv->query("START TRANSACTION");
+				if (empty($data)) {
+					$sqlDrv->query("INSERT pd_rating (id,rating,count) VALUES ($id,0,0)");
+				}else{
+					$rating = (floatval($data[0]["rating"]) * $count + floatval($rating)) / ($count+1);
+					$sqlDrv->query("UPDATE pd_rating SET rating=" .$rating. ",count=count+1,ip='" .$ip. "' WHERE id=$id");
+				}
+				$sqlDrv->query("COMMIT");
+
+				$_SESSION['rating-'. $id] = $rating;
+			}
+
+			echo json_encode(['rating' => number_format($rating, 2, '.', ''),'count' => ($count+1)]);
+		}
+	}
+	else if(isset($_GET['metadata']))
 	{
 		$metadata = $sqlDrv->mapQuery("SELECT name,value FROM pd_namedmetadata WHERE id=$id", "name");
 		$notes = $sqlDrv->scalarQuery("SELECT notes from pd_datasets WHERE id=$id");
@@ -69,6 +106,7 @@ if(isset($_GET['id']))
 		if (in_array($id, $dataId[0])) { //verify it belongs to user
 			$sqlDrv->query("DELETE FROM pd_data WHERE setid=" .$id);
 			$sqlDrv->query("DELETE FROM pd_datasets WHERE id=" .$id);
+			$sqlDrv->query("DELETE FROM pd_rating WHERE id=" .$id);
 
 			echo "Parameter ID: " .$id. " Deleted. <a href='my.html'>Back to My Profile</a>";
 		}else{
@@ -79,6 +117,14 @@ if(isset($_GET['id']))
 		$data = $sqlDrv->arrayQuery("SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id");
 
 		echo json_encode($data);
+	}
+}
+else if(isset($_GET['user']))
+{
+	if ($user->data['is_registered']) {
+		echo json_encode(['id' => $user->data['user_id']]);
+	}else{
+		echo json_encode([]);
 	}
 }
 else if(isset($_POST['filter']))

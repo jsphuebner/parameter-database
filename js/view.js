@@ -107,6 +107,8 @@ document.addEventListener("DOMContentLoaded", function(event)
     };
     mxhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&metadata', true);
     mxhr.send();
+
+    buildRating();
 });
 
 function loadParameters()

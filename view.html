@@ -4,6 +4,8 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
     	<link rel="stylesheet" type="text/css" href="css/bootstrap.css" media="screen" title="main">
+        <link rel="stylesheet" type="text/css" href="css/rating.css">
+        <script src="js/rating.js"></script>
         <script src="js/view.js"></script>
     </head>
 <body>
@@ -15,7 +17,10 @@
                 <hr/>
             </div>
         </div>
-        <div class="row mt-4"></div>
+        <div class="row">
+            <div class="rating" style="font-size: 32px;"></div>
+            <hr/>
+        </div>
         <div class="row" align="center">
             <div class="col">
                 <button type="button" class="btn btn-success" onclick="loadParameters()"> Load to Inverter</button>

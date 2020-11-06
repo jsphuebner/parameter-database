@@ -1,4 +1,4 @@
-function buildQuestionForm(json,form, filter)
+function buildQuestionForm(json,form,filter)
 {
     for(var index in json)
     {
@@ -24,10 +24,10 @@ function buildQuestionForm(json,form, filter)
             }
             else if(json[index]['type'] === 'select')
             {
-                var label = document.createElement('label');
+                var label = document.createElement('div');
                 label.className = 'form-label';
                 label.textContent = json[index][key];
-                fieldset.appendChild(label);
+                form.appendChild(label);
 
                 var select = document.createElement('select');
                 select.className = 'form-control mb-3';
@@ -55,12 +55,12 @@ function buildQuestionForm(json,form, filter)
             else if(json[index]['type'] === 'checkbox')
             {
                 var group = document.createElement('div');
-                group.className = 'form-control form-control-lg form-check mb-3';
+                group.className = 'form-check mb-3';
 
-                var label = document.createElement('label');
+                var label = document.createElement('div');
                 label.className = 'form-label';
                 label.textContent = json[index][key];
-                fieldset.appendChild(label);
+                form.appendChild(label);
 
                 var input = document.createElement('input');
                 input.setAttribute('type', 'hidden');
@@ -82,7 +82,7 @@ function buildQuestionForm(json,form, filter)
                             checkbox.checked = true;
 
                     var label = document.createElement('label');
-                    label.className = 'form-check-label form-check-label-lg';
+                    label.className = 'form-check-label';
                     label.textContent = item;
 
                     wrapper.appendChild(checkbox);

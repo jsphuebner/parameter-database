@@ -1,3 +1,5 @@
+var globalXHR = new XMLHttpRequest();
+
 document.addEventListener("DOMContentLoaded", function(event)
 {
     var xhr = new XMLHttpRequest();
@@ -39,8 +41,24 @@ document.addEventListener("DOMContentLoaded", function(event)
                 	var colspan = Object.keys(json[key]).length;
                 	var col = document.createElement('td');
                 	col.setAttribute('colspan', colspan);
-					col.textContent = json[key].category;
 
+                	var wrapper = document.createElement('div');
+                    wrapper.className = 'form-check input-group-checkbox';
+
+					var checkbox = document.createElement('input');
+                    checkbox.className = 'form-check-input';
+                    checkbox.setAttribute('type', 'checkbox');
+                    checkbox.setAttribute('id', json[key].category);
+                    checkbox.checked = true;
+					wrapper.appendChild(checkbox);
+
+					var label = document.createElement('label');
+                    label.className = 'form-check-label';
+                    label.textContent = json[key].category;
+    				wrapper.appendChild(label);
+
+
+                    col.appendChild(wrapper);
 					row.appendChild(col);
 					tbody.appendChild(row);
                 }
@@ -108,8 +126,51 @@ document.addEventListener("DOMContentLoaded", function(event)
     mxhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&metadata', true);
     mxhr.send();
 
-    buildRating();
+    buildRating('rating', window.location.search.substr(1), true);
 });
+
+function cherryPick()
+{
+    var filter = '';
+
+    var inputs = document.querySelectorAll("input[type='checkbox']");
+    for(var i = 0; i < inputs.length; i++) {
+        if(inputs[i].checked == true) {
+            filter += ':' + inputs[i].id;
+        }
+    }
+    return filter.substring(1);
+}
+
+function sendParameters(json, index)
+{
+    //Requires Server to provide "Access-Control-Allow-Origin"
+
+    var key = Object.keys(json)[index];
+    var total =  Object.keys(json).length;
+
+    if(key)
+    {
+        console.log(key + "=" + json[key]);
+
+        globalXHR.timeout = 8000;
+        globalXHR.onload = function() {
+            if (globalXHR.status == 200) {
+                document.getElementsByClassName('progress-bar')[0].style.width = (index/Object.keys(json).length*100) + '%';
+                sendParameters(json, (index+1));
+            }
+        }
+        globalXHR.ontimeout = function () {
+            var el = document.getElementById('inverter-error');
+            el.style.display = 'block';
+            el.textContent = "Connection Timed Out!";
+        }
+        globalXHR.open('GET', 'http://192.168.4.1/cmd?cmd=set '+ key + ' ' + json[key], true);
+        globalXHR.send();
+    }else{
+        document.getElementById('inverter-success').style.display = 'block';
+    }
+}
 
 function loadParameters()
 {
@@ -118,14 +179,38 @@ function loadParameters()
     xhr.onload = function() {
         if (xhr.status == 200) {
             var json = xhr.response;
-            console.log(json);
+            //console.log(json);
+
+            window.location.href = '#inverter-connect';
+            var modal = document.getElementById('inverter-connect');
+            modal.style.display = 'block';
+            modal.onclick = function(event){
+                if (event.target !== this)
+                    return;
+                this.style.display = 'none' 
+            }
+            document.querySelector('.close').addEventListener('click', function(event) {
+                //globalXHR.abort();
+                this.parentElement.parentElement.parentElement.parentElement.style.display = 'none';
+                //window.location.href = '#';
+            });
+            document.querySelector('.cancel').addEventListener('click', function(event) {
+                globalXHR.abort();
+                var el = document.getElementById('inverter-error');
+                el.style.display = 'block';
+                el.textContent = "Parameter Loading Canceled!";
+                //window.location.href = '#';
+            });
+            document.getElementById('inverter-error').style.display = 'none';
+            document.getElementById('inverter-success').style.display = 'none';
+            sendParameters(json, 0);
         }
     };
-    xhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&download&inverter', true);
+    xhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&download&filter=' + cherryPick(), true);
     xhr.send();
 }
 
 function downloadParameters()
 {
-    window.location.href = 'api.php?' + window.location.search.substr(1) + '&download';
+    window.location.href = 'api.php?' + window.location.search.substr(1) + '&download&filter=' + cherryPick();
 }

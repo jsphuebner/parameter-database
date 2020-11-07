@@ -30,13 +30,18 @@ document.addEventListener("DOMContentLoaded", function(event)
 
                 	for(var header in json[key])
 			        {
-			        	//if(header != 'id') {
+			        	if(header != 'id') {
 		        			//console.log(header);
 			        		var col = document.createElement('th');
         					col.textContent = header;
-						//}
-						row.appendChild(col);
+                            row.appendChild(col);
+						}
 			        }
+
+                    var col = document.createElement('th');
+                    col.textContent = 'Rating';
+                    row.appendChild(col);
+
 			        table.appendChild(row);
                 }
 
@@ -46,19 +51,29 @@ document.addEventListener("DOMContentLoaded", function(event)
                 for(var item in json[key])
 			    {
 			        console.log(json[key][item]);
-			        var col = document.createElement('td');
-			        if(i == 0) {
-			        	var a = document.createElement('a');
-			        	a.setAttribute('href', 'view.html?id=' + json[key][item]);
-			        	a.textContent = json[key][item];
-			        	col.appendChild(a);
-			        }else{
-        				col.textContent = json[key][item];
-					}
-					row.appendChild(col);
+                    if(item != 'id') {
+    			        var col = document.createElement('td');
+    			        if(i == 2) {
+    			        	var a = document.createElement('a');
+    			        	a.setAttribute('href', 'view.html?id=' + json[key]['id']);
+    			        	a.textContent = json[key][item];
+    			        	col.appendChild(a);
+    			        }else{
+            				col.textContent = json[key][item];
+    					}
+    					row.appendChild(col);
+                    }
 					i++;
 			    }
+
+                var col = document.createElement('td');
+                col.setAttribute('id', 'rating-' + key);
+                col.className = 'rating';
+                row.appendChild(col);
+
 			    tbody.appendChild(row);
+
+                buildRating('rating-' + key, 'id=1', false);
 	        }
 	        table.appendChild(tbody);
         }

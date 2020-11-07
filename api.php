@@ -81,9 +81,23 @@ if(isset($_GET['id']))
 	else if(isset($_GET['download']))
 	{
 		$metadata = $sqlDrv->mapQuery("SELECT name,value FROM pd_namedmetadata WHERE id=$id", "name");
-		header ("Content-Disposition: attachment; filename=\"" . $metadata["Hardware Variant"] . "-" . $metadata["Version"] . "-" .$metadata["Motor Type"] . "-" .$metadata["Inverter Type"]. "-" . $metadata["Driven wheels"] . "-" . $metadata["Timestamp"] . ".json\"");
+		$httpHeader = "Content-Disposition: attachment; filename=\"" . $metadata["Hardware Variant"] . "-" . $metadata["Version"] . "-";
 
-		$rows = $sqlDrv->arrayQuery("SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id");
+		$sql = "SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id";
+		if(isset($_GET['filter']))
+		{
+			if (strpos($_GET['filter'], "Motor") !== false) {
+				$httpHeader .= $metadata["Motor Type"] . "-";
+			}
+			if (strpos($_GET['filter'], "Inverter") !== false) {
+				$httpHeader .= $metadata["Inverter Type"]. "-";
+			}
+			$filter = explode(':', $_GET['filter']);
+			$sql .= ' AND category IN  ("' . implode('", "', $filter) . '")';
+		}
+		$httpHeader .= $metadata["Driven wheels"] . "-" . $metadata["Timestamp"] . ".json\"";
+
+		$rows = $sqlDrv->arrayQuery($sql);
 		$data = [];
 
 		foreach ($rows as $row)
@@ -91,6 +105,7 @@ if(isset($_GET['id']))
 			$data += [$row['name'] => $row['value']];
 		}
 
+		header($httpHeader);
 		echo json_encode($data);
 	}
 	else if(isset($_GET['remove']))

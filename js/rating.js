@@ -1,4 +1,4 @@
-function buildRating()
+function buildRating(element, id, showStatistics)
 {
     var xhr = new XMLHttpRequest();
     xhr.responseType = 'json';
@@ -6,19 +6,18 @@ function buildRating()
         if (xhr.status == 200) {
             var json = xhr.response;
             //console.log(json);
-            
-            var div = document.getElementsByClassName('rating');
+            var ratingIndex = json["rating"] || 0;
+            var div = document.getElementById(element);
             var rating = document.createElement('div');
 
-            var ratingIndex = 0;
-            if(json["rating"] != null) {
-                ratingIndex = parseInt(json["rating"]);
-                rating.innerHTML = '(' + json["count"] + ') ' + json["rating"] + '/5';
-            }else{
-                rating.innerHTML = '(Not Rated)';
+            if(showStatistics) {
+                if(json["rating"] != null) {
+                    rating.innerHTML = '(' + json["count"] + ') ' + json["rating"] + '/5';
+                }else{
+                    rating.innerHTML = '(Not Rated)';
+                }
+                div.appendChild(rating);
             }
-
-            div[0].appendChild(rating);
 
             for (var i = 5; i >= 1; i--) {
                 var star = document.createElement('span');
@@ -48,17 +47,18 @@ function buildRating()
                                         s.innerHTML = '&#9734;'
                                     }
                                 }
-                                rating.innerHTML = '(' + json["count"] + ') ' + json["rating"] + '/5';
+                                if(showStatistics)
+                                    rating.innerHTML = '(' + json["count"] + ') ' + json["rating"] + '/5';
                             }
                         }
                     };
-                    sxhr.open('GET', 'api.php?rating=' + this.id + '&' + window.location.search.substr(1), true);
+                    sxhr.open('GET', 'api.php?rating=' + this.id + '&' + id, true);
                     sxhr.send();
                 };
-                div[0].appendChild(star);
+                div.appendChild(star);
             }
         }
     };
-    xhr.open('GET', 'api.php?rating&' + window.location.search.substr(1), true);
+    xhr.open('GET', 'api.php?rating&' + id, true);
     xhr.send();
 }

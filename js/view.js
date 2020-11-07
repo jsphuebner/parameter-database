@@ -142,30 +142,43 @@ function cherryPick()
     return filter.substring(1);
 }
 
-function sendParameters(json, index)
+function sendParameters(json, index, loop)
 {
     //Requires Server to provide "Access-Control-Allow-Origin"
 
     var key = Object.keys(json)[index];
     var total =  Object.keys(json).length;
-
+    
     if(key)
     {
+    	var url = 'http://192.168.4.1/';
+    	if(loop == 0) { //Original ESP Web-Interface
+    		url += 'cmd?cmd=set '+ key + ' ' + json[key];
+    	}else if(loop == 1) { //Alternative ESP Web-Interface
+    		url += 'serial.php?set&name='+ key + '&value=' + json[key];
+    	}else if(loop == 3) { //USB-TTL Web-Interface
+			url = 'http://127.0.0.1:8080/serial.php?set&name='+ key + '&value=' + json[key];
+    	}else{
+ 			var el = document.getElementById('inverter-error');
+            el.style.display = 'block';
+            el.textContent = "Connection Timed Out!";
+            return;
+    	}
         console.log(key + "=" + json[key]);
 
         globalXHR.timeout = 8000;
         globalXHR.onload = function() {
             if (globalXHR.status == 200) {
                 document.getElementsByClassName('progress-bar')[0].style.width = (index/Object.keys(json).length*100) + '%';
-                sendParameters(json, (index+1));
+                sendParameters(json, (index+1), loop);
+            } else if (globalXHR.status == 404) {
+				sendParameters(json, index, (loop+1));
             }
         }
         globalXHR.ontimeout = function () {
-            var el = document.getElementById('inverter-error');
-            el.style.display = 'block';
-            el.textContent = "Connection Timed Out!";
+            sendParameters(json, index, (loop+1));
         }
-        globalXHR.open('GET', 'http://192.168.4.1/cmd?cmd=set '+ key + ' ' + json[key], true);
+        globalXHR.open('GET', url, true);
         globalXHR.send();
     }else{
         document.getElementById('inverter-success').style.display = 'block';
@@ -203,7 +216,7 @@ function loadParameters()
             });
             document.getElementById('inverter-error').style.display = 'none';
             document.getElementById('inverter-success').style.display = 'none';
-            sendParameters(json, 0);
+            sendParameters(json, 0, 0);
         }
     };
     xhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&download&filter=' + cherryPick(), true);

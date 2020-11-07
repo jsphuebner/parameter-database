@@ -12,16 +12,23 @@ document.addEventListener("DOMContentLoaded", function(event)
 
             if(json == null)
             {
-            	var row = document.createElement('tr');
-	            var col = document.createElement('td');
-	            var pre = document.createElement('pre');
-	            
-	            pre.textContent = "<form action=\"https://openinverter/parameters/api.php\" method=\"POST\" enctype=\"multipart/form-data\">\n<input type=\"text\" hidden id=\"parameters_json\" name=\"data\" />\n<input type=\"submit\" value=\"Submit Parameters to OpenInverter.org\" />\n</form>";
-	            col.innerHTML = 'Submit POST to /api.php<br>';
+            	var h = document.createElement('h2');
+            	h.textContent = 'Submit Parameters';
 
-	            col.appendChild(pre);
-	            row.appendChild(col);
-	            tbody.appendChild(row);
+	            var form = document.getElementById('parameter-questions');
+	            form.setAttribute('enctype', 'multipart/form-data');
+
+	            var submit = document.createElement('input');
+			    submit.setAttribute('type', 'file');
+			    submit.setAttribute('name', 'data');
+			    submit.setAttribute('accept', '.json');
+				submit.className = 'btn btn-primary';
+				submit.textContent = 'Browse Parameter File';
+				submit.onchange = function() {
+					this.form.submit();
+				}
+				form.appendChild(h);
+				form.appendChild(submit);
             }else{
 
 	            var category = [];

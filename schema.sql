@@ -10,8 +10,8 @@ create table pd_metaitems (
 insert pd_metaitems (name) values ("Version"),("Timestamp"),("Hardware Variant"),("Userid");
 insert pd_metaitems (name,question,type,options) values ("Motor Type","Which motor are you using?","text",null),
 ("Inverter Type","Which Inverter are you using?","select", "Nissan Leaf Gen1,Nissan Leaf Gen2, Nissan Leaf Gen3,Tesla SDU,Tesla LDU,Toyota Prius Gen2,Toyota Prius Gen3,Ford Ranger,Mitsubishi,BMW,Other,DIY Custom"),
-("Battery Voltage", "What is your nominal battery voltage?","number","1-1000"),
-("Vehicle Weight", "What is the weight of your vehicle in kg?","number","10-10000"),
+("Battery Voltage", "What is your nominal battery voltage?","slider","0-1000"),
+("Vehicle Weight", "What is the weight of your vehicle in kg?","slider","0-10000"),
 ("Driven Wheels", "What are the driven wheels?","select","FWD,RWD,AWD"),
 ("Tuning Goal", "What is your tuning goal?","checkbox","Street,Track,Smooth,Aggressive"),
 ("Throttle Pot","Which throttle pedal are you using?","text",null);
@@ -70,7 +70,9 @@ select setid, category, name, unit, value FROM pd_parameters p, pd_data d WHERE 
 create or replace view pd_namedmetadata as
 select d.id,i.name,i.question,m.value from pd_metadata m,pd_datasets d,pd_metaitems i WHERE m.setid=d.metadata AND i.id=m.metaitem;
 
-update pd_metaitems set type='numeric', options='' where id in (7,8);
+#Development queries
+update pd_metaitems set type='slider', options='0-1000' where id=7;
+update pd_metaitems set type='slider', options='0-10000' where id=8;
 
 #Some test queries
 select * from pd_namedmetadata;

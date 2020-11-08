@@ -10,6 +10,15 @@ document.addEventListener("DOMContentLoaded", function(event)
 			var table = document.getElementById('database-my-list');
             var tbody = document.createElement('tbody');
 
+            if(Object.keys(json).length == 0)
+            {
+                var row = document.createElement('tr');
+                var col = document.createElement('td');
+                col.textContent = "No Results";
+                row.appendChild(col);
+                tbody.appendChild(row);
+            }
+
     		for(var key in json)
 	        {
 	            //console.log(key);
@@ -59,6 +68,8 @@ document.addEventListener("DOMContentLoaded", function(event)
 			    tbody.appendChild(row);
 	        }
 	        table.appendChild(tbody);
+
+	        buildPages();
         }
     };
     xhr.open('GET', 'api.php?&my=list', true);

@@ -151,7 +151,7 @@ else if(isset($_POST['filter']))
 
 	foreach ($md as $id => $value)
 	{
-		if($value != "")
+		if($value != "" && $value != "0")
 			$filter += [$id => $value];
 	}
 	if (empty($filter)) {
@@ -164,7 +164,12 @@ else if(isset($_POST['filter']))
 }
 else if(isset($_GET['filter']))
 {
-	echo json_encode($_SESSION['filter']);
+	if(isset($_SESSION['filter']))
+	{
+		echo json_encode($_SESSION['filter']);
+	}else{
+		echo json_encode([]);
+	}
 }
 else if(isset($_GET['pages']))
 {
@@ -257,7 +262,12 @@ else if(isset($_POST['submit']))
 }
 else if(isset($_GET['submit']))
 {
-    echo json_encode($_SESSION['data']);
+	if(isset($_SESSION['data']))
+	{
+		echo json_encode($_SESSION['data']);
+	}else{
+		echo json_encode([]);
+	}
 }
 else if(isset($_FILES['data']) || isset($_POST['data']))
 {
@@ -337,8 +347,11 @@ else if(isset($_GET['my']))
 		die($loginRedirect);
 	}
 
-	$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_namedmetadata WHERE name='Userid' AND value=" .$user->data['user_id']);
-	$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" . implode(",", $dataId[0]) . ")");
+	$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_namedmetadata WHERE name='Userid' AND value=" .$user->data['user_id']. " LIMIT $OFFSET, $QUERYLIMIT");
+	if(count($dataId) == 0) {
+		die("{}");
+	}
+	$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", $dataId[0]). ") ORDER BY id ASC LIMIT $OFFSET, " .($QUERYLIMIT * 10));
 	$lastId = 0;
 	$data = [];
 	

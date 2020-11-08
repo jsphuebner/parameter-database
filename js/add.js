@@ -26,9 +26,9 @@ document.addEventListener("DOMContentLoaded", function(event)
 			}
 			upload.appendChild(submit);
 
-            if(json !== null)
+            if(Object.keys(json).length > 0)
             {
-            	if(json['error'] == null)
+            	if(json['error'] == undefined)
             	{
 		            var category = [];
 		            var t = 0;

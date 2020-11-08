@@ -5,7 +5,7 @@ function buildQuestionForm(json,form,filter)
         //console.log(json[index]);
 
         var fieldset = document.createElement('div');
-        fieldset.className = 'form-group input-group';
+        fieldset.className = 'form-group';
 
         for(var key in json[index])
         {
@@ -32,10 +32,9 @@ function buildQuestionForm(json,form,filter)
                     option.setAttribute('value', item);
                     option.textContent = item;
                     select.appendChild(option);
-                    if(filter != null)
-                        if(filter[key] != undefined)
-                            if (item == filter[key])
-                                select.selectedIndex = i;
+                    if(filter[key] != undefined)
+                        if (item == filter[key])
+                            select.selectedIndex = i;
                     i++;
                 });
             
@@ -55,9 +54,8 @@ function buildQuestionForm(json,form,filter)
                 input.setAttribute('type', 'hidden');
                 input.setAttribute('name', 'md[' + key + "]");
                 input.setAttribute('id', 'md' + key);
-                if(filter != null)
-                    if(filter[key] != undefined)
-                        input.value = filter[key];
+                if(filter[key] != undefined)
+                    input.setAttribute('value', filter[key]);
                 fieldset.appendChild(input);
                 
                 json[index]['options'].split(',').forEach(function (item) {
@@ -70,10 +68,9 @@ function buildQuestionForm(json,form,filter)
                     checkbox.setAttribute('type', 'checkbox');
                     checkbox.setAttribute('id', '_md' + key);
                     checkbox.value = item;
-                    if(filter != null)
-                        if(filter[key] != undefined)
-                        	if (filter[key].indexOf(item) !=-1)
-                            	checkbox.checked = true;
+                    if(filter[key] != undefined)
+                    	if (filter[key].indexOf(item) !=-1)
+                        	checkbox.checked = true;
 
                     checkbox.onclick = function()
                     {
@@ -100,6 +97,31 @@ function buildQuestionForm(json,form,filter)
                     group.appendChild(wrapper);
                 });
                 fieldset.appendChild(group);
+            }
+            else if(json[index]['type'] === 'slider')
+            {
+                var label = document.createElement('div');
+                label.className = 'form-label';
+                label.textContent = json[index][key];
+                form.appendChild(label);
+
+                var s = json[index]['options'].split('-');
+
+                var input = document.createElement('input');
+                input.className = 'js-range-slider mb-3';
+                input.setAttribute('type', 'text');
+                input.setAttribute('name', 'md[' + key + "]");
+                input.setAttribute('id', 'md' + key);
+                input.setAttribute('data-skin', 'big');
+                input.setAttribute('data-min', 0);
+                input.setAttribute('data-max', s[1]);
+                input.setAttribute('data-step', 1);
+                input.setAttribute('data-grid', true);
+                if(filter[key] != undefined) {
+                    input.setAttribute('data-from', filter[key]);
+                    input.setAttribute('value', filter[key]);
+                }
+                fieldset.appendChild(input);
             }else{
                 var input = document.createElement('input');
                 input.className = 'form-control mb-3';
@@ -107,13 +129,14 @@ function buildQuestionForm(json,form,filter)
                 input.setAttribute('name', 'md[' + key + "]");
                 input.setAttribute('id', 'md' + key);
                 input.setAttribute('placeholder', json[index][key]);
-                if(filter != null)
-                    if(filter[key] != undefined)
-                        input.value = filter[key];
+                if(filter[key] != undefined)
+                    input.setAttribute('value', filter[key]);
                 fieldset.appendChild(input);
             }
             break;
         }
         form.appendChild(fieldset);
+
+        $('.js-range-slider').ionRangeSlider();
     }
 }

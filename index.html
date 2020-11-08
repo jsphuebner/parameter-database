@@ -14,11 +14,13 @@
 		<div class="row mt-4"></div>
         <div class="row">
             <div class="col">
-                <form class="bg-light" action="api.php" method="POST" id="database-filter"></form>
-                <hr/>
+                <button class="btn btn-primary collapsible">Search Filter</button>
+                <div class="hidden mt-4" id="collapsible-content">
+                    <form class="bg-light" action="api.php" method="POST" id="database-filter"></form>
+                </div>
             </div>
         </div>
-        <div class="row mt-4"></div>
+        <div class="row mt-4"><hr/></div>
         <div class="row">
             <div class="col">
     			<table class="table table-sm table-active bg-light table-bordered table-striped table-hover" id="database-list"></table>

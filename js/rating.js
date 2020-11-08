@@ -21,7 +21,7 @@ function buildRating(element, id, showStatistics)
 
             for (var i = 5; i >= 1; i--) {
                 var star = document.createElement('span');
-                star.setAttribute('id', i);
+                star.setAttribute('id', element + '_' + i);
                 if(ratingIndex >= i) {
                     star.innerHTML = '&#9733;'
                 }else{
@@ -52,7 +52,7 @@ function buildRating(element, id, showStatistics)
                             }
                         }
                     };
-                    sxhr.open('GET', 'api.php?rating=' + this.id + '&' + id, true);
+                    sxhr.open('GET', 'api.php?rating=' + this.id.split('_')[1] + '&' + id, true);
                     sxhr.send();
                 };
                 div.appendChild(star);

@@ -56,7 +56,7 @@ if(isset($_GET['id']))
 
 				$sqlDrv->query("START TRANSACTION");
 				if (empty($data)) {
-					$sqlDrv->query("INSERT pd_rating (id,rating,count) VALUES ($id,0,0)");
+					$sqlDrv->query("INSERT pd_rating (id,rating,count) VALUES ($id,$rating,1)");
 				}else{
 					$rating = (floatval($data[0]["rating"]) * $count + floatval($rating)) / ($count+1);
 					$sqlDrv->query("UPDATE pd_rating SET rating=" .$rating. ",count=count+1,ip='" .$ip. "' WHERE id=$id");
@@ -243,12 +243,17 @@ else if(isset($_GET['submit']))
 {
     echo json_encode($_SESSION['data']);
 }
-else if(isset($_POST['data']))
+else if(isset($_FILES['data']) || isset($_POST['data']))
 {
 	header('Content-Type: text/html');
 
-	//unset($_SESSION['data']);
-	$_SESSION['data'] = json_decode($_POST['data']); //$_POST['data'];
+	if (isset($_FILES['data'])) {
+		$data = file_get_contents($_FILES['data']['tmp_name']);
+	}else{
+		$data  = $_POST['data'];
+	}
+
+	$_SESSION['data'] = json_decode($data);
 
 	if (!$user->data['is_registered']) {
 		$loginRedirect = str_replace('api.php', 'add.html', $loginRedirect);
@@ -324,7 +329,7 @@ else if(isset($_GET['my']))
 
 }else{
 
-	$sql = "SELECT id, name, value FROM pd_namedmetadata ";
+	$sql = "SELECT id, name, value FROM pd_namedmetadata WHERE name != 'Userid' ";
 	
 	if(isset($_SESSION['filter']))
 	{
@@ -333,7 +338,7 @@ else if(isset($_GET['my']))
 		foreach ($_SESSION['filter'] as $id => $value)
 		{
 			if($index == 0) {
-				$sqlFilter .= "WHERE value LIKE '%" . $value . "%' ";
+				$sqlFilter .= "AND value LIKE '%" . $value . "%' ";
 			}else{
 				$sqlFilter .= "OR value LIKE '%" . $value . "%' ";
 			}

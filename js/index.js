@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 
 			    tbody.appendChild(row);
 
-                buildRating('rating-' + key, 'id=1', false);
+                buildRating('rating-' + key, 'id=' + json[key]['id'], false);
 	        }
 	        table.appendChild(tbody);
         }
@@ -97,7 +97,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 
                     var form = document.getElementById('database-filter');
 
-                    buildQuestionForm(json,form, filter);
+                    buildQuestionForm(json, form, filter);
 
                     var submit = document.createElement('button');
                     submit.setAttribute('type', 'submit');
@@ -105,6 +105,16 @@ document.addEventListener("DOMContentLoaded", function(event)
                     submit.className = 'btn btn-primary';
                     submit.textContent = 'Filter Results';
                     form.appendChild(submit);
+
+                    var coll = document.getElementsByClassName('collapsible')[0];
+                    var content = document.getElementById('collapsible-content');
+                    if(filter != null) {
+                        content.classList.remove('hidden');
+                    }
+                    coll.addEventListener('click', function() {
+                        this.classList.toggle('active');
+                        content.classList.toggle('hidden');
+                    });
                 }
             };
             ffxhr.open('GET', 'api.php?filter', true);

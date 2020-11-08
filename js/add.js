@@ -10,27 +10,24 @@ document.addEventListener("DOMContentLoaded", function(event)
             var table = document.getElementById('parameter-data');
             var tbody = document.createElement('tbody');
 
-            if(json == null)
+	        var upload = document.getElementById('parameter-upload');
+
+	    	var h = document.createElement('h2');
+	    	h.textContent = 'Upload Parameters';
+	    	upload.appendChild(h);
+
+	       	var submit = document.createElement('input');
+		    submit.setAttribute('type', 'file');
+		    submit.setAttribute('name', 'data');
+		    submit.setAttribute('accept', '.json');
+			submit.textContent = 'Browse Parameter File';
+			submit.onchange = function() {
+				this.form.submit();
+			}
+			upload.appendChild(submit);
+
+            if(json !== null)
             {
-            	var h = document.createElement('h2');
-            	h.textContent = 'Submit Parameters';
-
-	            var form = document.getElementById('parameter-questions');
-	            form.setAttribute('enctype', 'multipart/form-data');
-
-	            var submit = document.createElement('input');
-			    submit.setAttribute('type', 'file');
-			    submit.setAttribute('name', 'data');
-			    submit.setAttribute('accept', '.json');
-				submit.className = 'btn btn-primary';
-				submit.textContent = 'Browse Parameter File';
-				submit.onchange = function() {
-					this.form.submit();
-				}
-				form.appendChild(h);
-				form.appendChild(submit);
-            }else{
-
 	            var category = [];
 	            var t = 0;
 
@@ -112,6 +109,10 @@ document.addEventListener("DOMContentLoaded", function(event)
 			            console.log(json);
 
 						var form = document.getElementById('parameter-questions');
+
+						var h = document.createElement('h2');
+				    	h.textContent = 'Questions';
+				    	form.appendChild(h);
 
 						buildQuestionForm(json,form, []);
 

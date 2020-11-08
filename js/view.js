@@ -123,7 +123,7 @@ document.addEventListener("DOMContentLoaded", function(event)
             table.appendChild(tbody);
         }
     };
-    mxhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&metadata', true);
+    mxhr.open('GET', 'api.php?metadata&' + window.location.search.substr(1), true);
     mxhr.send();
 
     buildRating('rating', window.location.search.substr(1), true);
@@ -156,7 +156,7 @@ function sendParameters(json, index, loop)
     		url += 'cmd?cmd=set '+ key + ' ' + json[key];
     	}else if(loop == 1) { //Alternative ESP Web-Interface
     		url += 'serial.php?set&name='+ key + '&value=' + json[key];
-    	}else if(loop == 3) { //USB-TTL Web-Interface
+    	}else if(loop == 2) { //USB-TTL Web-Interface
 			url = 'http://127.0.0.1:8080/serial.php?set&name='+ key + '&value=' + json[key];
     	}else{
  			var el = document.getElementById('inverter-error');
@@ -181,7 +181,17 @@ function sendParameters(json, index, loop)
         globalXHR.open('GET', url, true);
         globalXHR.send();
     }else{
+        document.getElementsByClassName('progress-bar')[0].style.width = '100%';
         document.getElementById('inverter-success').style.display = 'block';
+
+        var done = document.getElementById('inverter-status-button');
+        done.classList.remove('cancel');
+        done.textContent = 'Done';
+        done.onclick = function(event){
+            this.classList.add('cancel');
+            this.textContent = 'Cancel';
+            this.parentElement.parentElement.parentElement.parentElement.style.display = 'none';
+        }
     }
 }
 
@@ -200,11 +210,11 @@ function loadParameters()
             modal.onclick = function(event){
                 if (event.target !== this)
                     return;
-                this.style.display = 'none' 
+                this.style.display = 'none';
             }
             document.querySelector('.close').addEventListener('click', function(event) {
                 //globalXHR.abort();
-                this.parentElement.parentElement.parentElement.parentElement.style.display = 'none';
+                modal.style.display = 'none';
                 //window.location.href = '#';
             });
             document.querySelector('.cancel').addEventListener('click', function(event) {
@@ -214,6 +224,7 @@ function loadParameters()
                 el.textContent = "Parameter Loading Canceled!";
                 //window.location.href = '#';
             });
+            document.getElementsByClassName('progress-bar')[0].style.width = '0%';
             document.getElementById('inverter-error').style.display = 'none';
             document.getElementById('inverter-success').style.display = 'none';
             sendParameters(json, 0, 0);

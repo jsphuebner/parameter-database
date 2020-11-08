@@ -50,3 +50,15 @@
   overflow-y: scroll;
   position: relative;
 }
+
+.collapsible:after {
+  content: '\002B';
+  color: white;
+  font-weight: bold;
+  float: right;
+  margin-left: 5px;
+}
+
+.active:after {
+  content: "\2212";
+}

@@ -40,7 +40,7 @@ function buildRating(element, id, showStatistics)
                             }else{
                                 ratingIndex = parseInt(json["rating"]);
                                 for (var i = 1; i <= 5; i++) {
-                                    var s = document.getElementById(i);
+                                    var s = document.getElementById(element + '_' + i);
                                     if(ratingIndex >= i) {
                                         s.innerHTML = '&#9733;'
                                     }else{

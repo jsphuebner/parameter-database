@@ -76,9 +76,11 @@ document.addEventListener("DOMContentLoaded", function(event)
                 buildRating('rating-' + key, 'id=' + json[key]['id'], false);
 	        }
 	        table.appendChild(tbody);
+
+            buildPages();
         }
     };
-    xhr.open('GET', 'api.php', true);
+    xhr.open('GET', 'api.php?' + window.location.search.substr(1), true);
     xhr.send();
 
     var fxhr = new XMLHttpRequest();
@@ -96,6 +98,8 @@ document.addEventListener("DOMContentLoaded", function(event)
                     //console.log(filter);
 
                     var form = document.getElementById('database-filter');
+
+                    buildQuestionForm(JSON.parse('[{"1":"Firmware Version?","type":"select","options":"Sine,FOC"},{"3":"Hardware Variant?","type":"select","options":"Rev1,Rev2,Rev3,Tesla,TeslaM3,BluePill,Prius"}]'), form, filter);
 
                     buildQuestionForm(json, form, filter);
 
@@ -124,3 +128,52 @@ document.addEventListener("DOMContentLoaded", function(event)
     fxhr.open('GET', 'api.php?questions', true);
     fxhr.send();
 });
+
+function buildPages()
+{
+    var xhr = new XMLHttpRequest();
+    xhr.responseType = 'json';
+    xhr.onload = function() {
+        if (xhr.status == 200) {
+            var json = xhr.response;
+            //console.log(json);
+
+            if(Object.keys(json).length > 0)
+            {
+                var pages = document.getElementById('pages');
+
+                var first = document.createElement('button');
+                first.className = 'btn btn-primary btn-sm mr-3';
+                first.textContent = '<';
+                first.onclick = function(event) {
+                    location.href = '?offset=0';
+                }
+                pages.appendChild(first);
+
+                for (var i = 0; i < json['pages']; i++)
+                {
+                    var pg = document.createElement('button');
+                    pg.className = 'btn btn-primary btn-sm mr-3';
+                    pg.setAttribute('id', i);
+                    pg.textContent = i + 1;
+                    pg.onclick = function(event) {
+                        var o = (json['offset'] * this.id);
+                        location.href = '?offset=' + o;
+                    }
+                    pages.appendChild(pg);
+                }
+
+                var last = document.createElement('button');
+                last.className = 'btn btn-primary btn-sm mr-3';
+                last.textContent = '>';
+                last.onclick = function(event) {
+                    var o = (json['offset'] * json['pages']);
+                    location.href = '?offset=' + o;
+                }
+                pages.appendChild(last);
+            }
+        }
+    };
+    xhr.open('GET', 'api.php?pages', true);
+    xhr.send();
+}

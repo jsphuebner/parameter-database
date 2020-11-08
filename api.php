@@ -166,6 +166,14 @@ else if(isset($_GET['filter']))
 {
 	echo json_encode($_SESSION['filter']);
 }
+else if(isset($_GET['pages']))
+{
+	$pages = $sqlDrv->scalarQuery("SELECT COUNT(id) FROM pd_datasets");
+	$data = ['pages' => ceil($pages/$QUERYLIMIT)-1];
+	$data += ['offset' => $QUERYLIMIT];
+
+	echo json_encode($data);
+}
 else if(isset($_POST['submit']))
 {
 	header('Content-Type: text/html');
@@ -189,8 +197,16 @@ else if(isset($_POST['submit']))
 	{
 		$sql.= "($setId, $id, '$value'),";
 	}
-	$swVer = $parameters->version->enums[$parameters->version->value];
-	$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
+
+	if(is_array($parameters->version->enums))
+	{
+		$swVer = $parameters->version->enums[$parameters->version->value];
+		$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
+	}else{ //regulat json import support
+		$swVer = parseEnum($parameters->version->unit)[$parameters->version->value];
+		$hwVer = parseEnum($parameters->hwver->unit)[$parameters->hwver->value];
+	}
+
 	$sql .= "($setId, 1, '$swVer'),";
 	$sql .= "($setId, 3, '$hwVer'),";
 	$sql .= "($setId, 2, NOW()),";
@@ -247,19 +263,31 @@ else if(isset($_FILES['data']) || isset($_POST['data']))
 {
 	header('Content-Type: text/html');
 
+	if (!$user->data['is_registered']) {
+		$loginRedirect = str_replace('api.php', 'add.html', $loginRedirect);
+		die($loginRedirect);
+	}
+
 	if (isset($_FILES['data'])) {
 		$data = file_get_contents($_FILES['data']['tmp_name']);
 	}else{
 		$data  = $_POST['data'];
 	}
+	$validation = json_decode($data,true);
 
-	$_SESSION['data'] = json_decode($data);
+	if (json_last_error() !== JSON_ERROR_NONE) {
+	    $_SESSION['data'] = json_decode(json_encode(['error'=>'json']));
+	}else if(!is_array(array_values($validation)[0])) {
+		$_SESSION['data'] = json_decode(json_encode(['error'=>'validation']));
+	}else{
+		$_SESSION['data'] = json_decode($data);
+	}
 
 	if (!$user->data['is_registered']) {
 		$loginRedirect = str_replace('api.php', 'add.html', $loginRedirect);
 		die($loginRedirect);
 	}
-	
+
 	header('Location: add.html');
 }
 else if(isset($_GET['questions']))
@@ -310,7 +338,7 @@ else if(isset($_GET['my']))
 	}
 
 	$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_namedmetadata WHERE name='Userid' AND value=" .$user->data['user_id']);
-	$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE id IN (" . implode(",", $dataId[0]) . ")");
+	$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" . implode(",", $dataId[0]) . ")");
 	$lastId = 0;
 	$data = [];
 	
@@ -338,9 +366,9 @@ else if(isset($_GET['my']))
 		foreach ($_SESSION['filter'] as $id => $value)
 		{
 			if($index == 0) {
-				$sqlFilter .= "AND value LIKE '%" . $value . "%' ";
+				$sqlFilter .= "WHERE value LIKE '%" . $value . "%' ";
 			}else{
-				$sqlFilter .= "OR value LIKE '%" . $value . "%' ";
+				$sqlFilter .= "AND value LIKE '%" . $value . "%' ";
 			}
 			$index++;
 		}
@@ -351,7 +379,7 @@ else if(isset($_GET['my']))
 		if(count($dataId) == 0) {
 			die("{}");
 		}else{
-			$sql .= " WHERE id IN (" . implode(",", $dataId[0]) . ") ";
+			$sql .= "AND id IN (" . implode(",", $dataId[0]) . ") ";
 		}
 	}
 	
@@ -374,6 +402,24 @@ else if(isset($_GET['my']))
 	}
 
 	echo json_encode($data);
+}
+
+function parseEnum($unit)
+{
+	$enums = [];
+	$res = explode(',', $unit);
+
+	if (is_array($res))
+	{
+		foreach($res as $key)
+		{
+			$expr = explode('=', $key);
+			array_push($enums, $expr[1]);
+		}
+		//print_r($enums);
+		return $enums;
+	}
+	return false;
 }
 
 ?>

@@ -14,7 +14,17 @@
 		<div class="row mt-4"></div>
         <div class="row">
             <div class="col">
-                <button class="btn btn-primary collapsible">Search Filter</button>
+                <button class="btn btn-secondary collapsible">Search Filter</button>
+            </div>
+             <div class="col">
+                <button class="btn btn-success" onClick="window.location.href='add.html'">Add Parameters</button>
+            </div>
+             <div class="col">
+                <button class="btn btn-primary" onClick="window.location.href='my.html'">My Parameters</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
                 <div class="hidden mt-4" id="collapsible-content">
                     <form class="bg-light" action="api.php" method="POST" id="database-filter"></form>
                 </div>
@@ -26,6 +36,11 @@
     			<table class="table table-sm table-active bg-light table-bordered table-striped table-hover" id="database-list"></table>
 			</div>
 		</div>
+        <div class="row">
+            <div class="col">
+                <div id="pages"></div>
+            </div>
+        </div>
 	</div>
 </body>
 </html>

@@ -3,6 +3,7 @@ function buildQuestionForm(json,form,filter)
     for(var index in json)
     {
         //console.log(json[index]);
+
         var fieldset = document.createElement('div');
         fieldset.className = 'form-group input-group';
 
@@ -10,19 +11,7 @@ function buildQuestionForm(json,form,filter)
         {
             console.log(key);
 
-            if(json[index]['type'] === 'text' || json[index]['type'] === 'numeric') {
-                var input = document.createElement('input');
-                input.className = 'form-control mb-3';
-                input.setAttribute('type', 'text');
-                input.setAttribute('name', 'md[' + key + "]");
-                input.setAttribute('id', 'md' + key);
-                input.setAttribute('placeholder', json[index][key]);
-                if(filter != null)
-                    if(filter[key] != undefined)
-                        input.value = filter[key];
-                fieldset.appendChild(input);
-            }
-            else if(json[index]['type'] === 'select')
+            if(json[index]['type'] === 'select')
             {
                 var label = document.createElement('div');
                 label.className = 'form-label';
@@ -111,6 +100,17 @@ function buildQuestionForm(json,form,filter)
                     group.appendChild(wrapper);
                 });
                 fieldset.appendChild(group);
+            }else{
+                var input = document.createElement('input');
+                input.className = 'form-control mb-3';
+                input.setAttribute('type', json[index]['type']);
+                input.setAttribute('name', 'md[' + key + "]");
+                input.setAttribute('id', 'md' + key);
+                input.setAttribute('placeholder', json[index][key]);
+                if(filter != null)
+                    if(filter[key] != undefined)
+                        input.value = filter[key];
+                fieldset.appendChild(input);
             }
             break;
         }

@@ -10,7 +10,6 @@
 .rating > span {
   display: inline-block;
   position: relative;
-  width: 1.1em;
 }
 .rating > span:hover,
 .rating > span:hover ~ span {
@@ -22,6 +21,17 @@
    position: absolute;
    left: 0;
    color: gold;
+}
+
+.rating-flash {
+  unicode-bidi: bidi-override;
+  direction: rtl;
+  text-align: center;
+  color: red;
+}
+.rating-flash > span {
+  display: inline-block;
+  position: relative;
 }
 
 .modalDialog {

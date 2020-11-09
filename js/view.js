@@ -100,57 +100,57 @@ document.addEventListener("DOMContentLoaded", function(event)
 					row.appendChild(col);
 					i++;
 				}
-			   	tbody.appendChild(row);
+					tbody.appendChild(row);
 			}
 			 
 			table.appendChild(tbody);
-		}
-	};
-	xhr.open('GET', 'api.php?' + window.location.search.substr(1), true);
-	xhr.send();
+		  }
+	 };
+	 xhr.open('GET', 'api.php?' + window.location.search.substr(1), true);
+	 xhr.send();
 
-	var mxhr = new XMLHttpRequest();
-	mxhr.responseType = 'json';
-	mxhr.onload = function() {
-		if (mxhr.status == 200) {
-			var json = mxhr.response;
-			console.log(json);
+	 var mxhr = new XMLHttpRequest();
+	 mxhr.responseType = 'json';
+	 mxhr.onload = function() {
+		  if (mxhr.status == 200) {
+				var json = mxhr.response;
+				console.log(json);
 
-			var table = document.getElementById('parameter-metadata');
-			var tbody = document.createElement('tbody');
+				var table = document.getElementById('parameter-metadata');
+				var tbody = document.createElement('tbody');
 
-			var keys = Object.keys(json);
+				var keys = Object.keys(json);
 
-			for (i = 0; i < keys.length; i++)
-			{
-				var row = document.createElement('tr');
-	  
-				//console.log(keys);
-				var col = document.createElement('td');
+				for (i = 0; i < keys.length; i++)
+				{
+					 var row = document.createElement('tr');
+		
+					 //console.log(keys);
+					 var col = document.createElement('td');
 
-				if(keys[i] == 'Userid') {
-					var a = document.createElement('a');
-					a.setAttribute('href', 'https://openinverter.org/forum/memberlist.php?mode=viewprofile&u=' + json[keys[i]]);
-					a.textContent = 'User Profile';
-					col.appendChild(a);
-				}else{
-					col.textContent = keys[i];
+					 if(keys[i] == 'Userid') {
+						  var a = document.createElement('a');
+						  a.setAttribute('href', 'https://openinverter.org/forum/memberlist.php?mode=viewprofile&u=' + json[keys[i]]);
+						  a.textContent = 'User Profile';
+						  col.appendChild(a);
+					 }else{
+					 	col.textContent = keys[i];
+					 }
+					 row.appendChild(col);
+
+					 var col = document.createElement('td');
+					 col.innerHTML = json[keys[i]];
+					 row.appendChild(col);
+					 
+					 tbody.appendChild(row);
 				}
-				row.appendChild(col);
+				table.appendChild(tbody);
+		  }
+	 };
+	 mxhr.open('GET', 'api.php?metadata&' + window.location.search.substr(1), true);
+	 mxhr.send();
 
-				var col = document.createElement('td');
-				col.textContent = json[keys[i]];
-				row.appendChild(col);
-				
-				tbody.appendChild(row);
-			}
-			table.appendChild(tbody);
-		}
-	};
-	mxhr.open('GET', 'api.php?metadata&' + window.location.search.substr(1), true);
-	mxhr.send();
-
-	buildRating('rating', window.location.search.substr(1), true);
+	 buildRating('rating', window.location.search.substr(1), true);
 });
 
 function cherryPick()
@@ -168,94 +168,107 @@ function cherryPick()
 
 function sendParameters(json, index, loop)
 {
-	//Requires Server to provide "Access-Control-Allow-Origin"
+	 //Requires Server to provide "Access-Control-Allow-Origin"
 
-	var key = Object.keys(json)[index];
-	var total =  Object.keys(json).length;
-	
-	if(key)
-	{
-		var url = 'http://192.168.4.1/';
-		if(loop == 0) { //Original ESP Web-Interface
-			url += 'cmd?cmd=set '+ key + ' ' + json[key];
-		}else if(loop == 1) { //Alternative ESP Web-Interface
-			url += 'serial.php?set&name='+ key + '&value=' + json[key];
-		}else if(loop == 2) { //USB-TTL Web-Interface
+	 var key = Object.keys(json)[index];
+	 var total =  Object.keys(json).length;
+	 
+	 if(key)
+	 {
+	 	document.getElementById('inverter-status').style.display = 'block';
+
+	 	var url = 'http://192.168.4.1/';
+	 	if(loop == 0) { //Original ESP Web-Interface
+	 		url += 'cmd?cmd=set '+ key + ' ' + json[key];
+				document.getElementById('inverter-status-text').textContent = 'Connecting to ESP8266 ...';
+	 	}else if(loop == 1) { //Alternative ESP Web-Interface
+	 		url += 'serial.php?set&name='+ key + '&value=' + json[key];
+				document.getElementById('inverter-status-text').textContent = 'Trying "Alternative" Web-Interface ...';
+	 	}else if(loop == 2) { //USB-TTL Web-Interface
 			url = 'http://127.0.0.1:8080/serial.php?set&name='+ key + '&value=' + json[key];
-		}else{
- 			var el = document.getElementById('inverter-error');
-			el.style.display = 'block';
-			el.textContent = "Connection Timed Out!";
-			return;
-		}
-		console.log(key + "=" + json[key]);
+				document.getElementById('inverter-status-text').textContent = 'Trying USB-TTL Web-Interface ...';
+	 	}else{
+				setTimeout(function(){
+					 document.getElementById('inverter-status').style.display = 'none';
+	  			var el = document.getElementById('inverter-error');
+					 el.style.display = 'block';
+					 el.textContent = "Connection Timed Out!";
+				}, globalXHR.timeout);
+				return;
+	 	}
+		  console.log(key + "=" + json[key]);
 
-		globalXHR.timeout = 8000;
-		globalXHR.onload = function() {
-			if (globalXHR.status == 200) {
-				document.getElementsByClassName('progress-bar')[0].style.width = (index/Object.keys(json).length*100) + '%';
-				sendParameters(json, (index+1), loop);
-			} else if (globalXHR.status == 404) {
-				sendParameters(json, index, (loop+1));
-			}
-		}
-		globalXHR.ontimeout = function () {
-			sendParameters(json, index, (loop+1));
-		}
-		globalXHR.open('GET', url, true);
-		globalXHR.send();
-	}else{
-		document.getElementsByClassName('progress-bar')[0].style.width = '100%';
-		document.getElementById('inverter-success').style.display = 'block';
+		  globalXHR.timeout = 6000;
+		  globalXHR.onload = function() {
+				if (globalXHR.status == 200) {
+					 document.getElementsByClassName('progress-bar')[0].style.width = (index/Object.keys(json).length*100) + '%';
+					 document.getElementById('inverter-status').style.display = 'none';
+					 sendParameters(json, (index+1), loop);
+				} else if (globalXHR.status == 404) {
+				sendParameters(json, 0, (loop+1));
+				}
+		  }
+		  globalXHR.onerror = function () {
+				sendParameters(json, 0, (loop+1));
+		  }
+		  globalXHR.ontimeout = function () {
+				sendParameters(json, 0, (loop+1));
+		  }
+		  globalXHR.open('GET', url, true);
+		  globalXHR.send();
+	 }else{
+		  document.getElementsByClassName('progress-bar')[0].style.width = '100%';
+		  document.getElementById('inverter-success').style.display = 'block';
 
-		var done = document.getElementById('inverter-status-button');
-		done.classList.remove('cancel');
-		done.textContent = 'Done';
-		done.onclick = function(event){
-			this.classList.add('cancel');
-			this.textContent = 'Cancel';
-			this.parentElement.parentElement.parentElement.parentElement.style.display = 'none';
-		}
-	}
+		  var done = document.getElementById('inverter-status-button');
+		  done.classList.remove('cancel');
+		  done.textContent = 'Done';
+		  done.onclick = function(event){
+				this.classList.add('cancel');
+				this.textContent = 'Cancel';
+				this.parentElement.parentElement.parentElement.parentElement.style.display = 'none';
+		  }
+	 }
 }
 
 function loadParameters()
 {
-	var xhr = new XMLHttpRequest();
-	xhr.responseType = 'json';
-	xhr.onload = function() {
-		if (xhr.status == 200) {
-			var json = xhr.response;
-			//console.log(json);
+	 var xhr = new XMLHttpRequest();
+	 xhr.responseType = 'json';
+	 xhr.onload = function() {
+		  if (xhr.status == 200) {
+				var json = xhr.response;
+				//console.log(json);
 
-			window.location.href = '#inverter-connect';
-			var modal = document.getElementById('inverter-connect');
-			modal.style.display = 'block';
-			modal.onclick = function(event){
-				if (event.target !== this)
-					return;
-				this.style.display = 'none';
-			}
-			document.querySelector('.close').addEventListener('click', function(event) {
-				//globalXHR.abort();
-				modal.style.display = 'none';
-				//window.location.href = '#';
-			});
-			document.querySelector('.cancel').addEventListener('click', function(event) {
-				globalXHR.abort();
-				var el = document.getElementById('inverter-error');
-				el.style.display = 'block';
-				el.textContent = "Parameter Loading Canceled!";
-				//window.location.href = '#';
-			});
-			document.getElementsByClassName('progress-bar')[0].style.width = '0%';
-			document.getElementById('inverter-error').style.display = 'none';
-			document.getElementById('inverter-success').style.display = 'none';
-			sendParameters(json, 0, 0);
-		}
-	};
-	xhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&download&filter=' + cherryPick(), true);
-	xhr.send();
+				window.location.href = '#inverter-connect';
+				var modal = document.getElementById('inverter-connect');
+				modal.style.display = 'block';
+				modal.onclick = function(event){
+					 if (event.target !== this)
+						  return;
+					 this.style.display = 'none';
+				}
+				document.querySelector('.close').addEventListener('click', function(event) {
+					 //globalXHR.abort();
+					 modal.style.display = 'none';
+					 //window.location.href = '#';
+				});
+				document.querySelector('.cancel').addEventListener('click', function(event) {
+					 globalXHR.abort();
+					 var el = document.getElementById('inverter-error');
+					 el.style.display = 'block';
+					 el.textContent = "Parameter Loading Canceled!";
+					 document.getElementById('inverter-status').style.display = 'none';
+					 //window.location.href = '#';
+				});
+				document.getElementsByClassName('progress-bar')[0].style.width = '0%';
+				document.getElementById('inverter-error').style.display = 'none';
+				document.getElementById('inverter-success').style.display = 'none';
+				sendParameters(json, 0, 0);
+		  }
+	 };
+	 xhr.open('GET', 'api.php?' + window.location.search.substr(1) + '&download&filter=' + cherryPick(), true);
+	 xhr.send();
 }
 
 function downloadParameters()

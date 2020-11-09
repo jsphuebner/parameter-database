@@ -36,7 +36,16 @@ function buildRating(element, id, showStatistics)
                             var json = sxhr.response;
                             //console.log(json);
                             if(json["rating"] == -1) {
-                                alert("Cannot Vote Twice!");
+                                //Cannot Vote Twice!
+                                var i = 4;
+                                var flash = setInterval(function() {
+                                    i--;
+                                    if(i < 1) {
+                                        clearInterval(flash);
+                                    }
+                                    div.classList.toggle('rating');
+                                    div.classList.toggle('rating-flash');
+                                }, 200);
                             }else{
                                 ratingIndex = parseInt(json["rating"]);
                                 for (var i = 1; i <= 5; i++) {

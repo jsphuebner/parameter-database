@@ -110,12 +110,12 @@ document.addEventListener("DOMContentLoaded", function(event)
                     a.textContent = 'User Profile';
                     col.appendChild(a);
                 }else{
-                    col.textContent = keys[i];
+                	col.textContent = keys[i];
                 }
                 row.appendChild(col);
 
                 var col = document.createElement('td');
-                col.textContent = json[keys[i]];
+                col.innerHTML = json[keys[i]];
                 row.appendChild(col);
                 
                 tbody.appendChild(row);
@@ -151,32 +151,44 @@ function sendParameters(json, index, loop)
     
     if(key)
     {
+    	document.getElementById('inverter-status').style.display = 'block';
+
     	var url = 'http://192.168.4.1/';
     	if(loop == 0) { //Original ESP Web-Interface
     		url += 'cmd?cmd=set '+ key + ' ' + json[key];
+            document.getElementById('inverter-status-text').textContent = 'Connecting to ESP8266 ...';
     	}else if(loop == 1) { //Alternative ESP Web-Interface
     		url += 'serial.php?set&name='+ key + '&value=' + json[key];
+            document.getElementById('inverter-status-text').textContent = 'Trying "Alternative" Web-Interface ...';
     	}else if(loop == 2) { //USB-TTL Web-Interface
 			url = 'http://127.0.0.1:8080/serial.php?set&name='+ key + '&value=' + json[key];
+            document.getElementById('inverter-status-text').textContent = 'Trying USB-TTL Web-Interface ...';
     	}else{
- 			var el = document.getElementById('inverter-error');
-            el.style.display = 'block';
-            el.textContent = "Connection Timed Out!";
+            setTimeout(function(){
+                document.getElementById('inverter-status').style.display = 'none';
+     			var el = document.getElementById('inverter-error');
+                el.style.display = 'block';
+                el.textContent = "Connection Timed Out!";
+            }, globalXHR.timeout);
             return;
     	}
         console.log(key + "=" + json[key]);
 
-        globalXHR.timeout = 8000;
+        globalXHR.timeout = 6000;
         globalXHR.onload = function() {
             if (globalXHR.status == 200) {
                 document.getElementsByClassName('progress-bar')[0].style.width = (index/Object.keys(json).length*100) + '%';
+                document.getElementById('inverter-status').style.display = 'none';
                 sendParameters(json, (index+1), loop);
             } else if (globalXHR.status == 404) {
-				sendParameters(json, index, (loop+1));
+				sendParameters(json, 0, (loop+1));
             }
         }
+        globalXHR.onerror = function () {
+            sendParameters(json, 0, (loop+1));
+        }
         globalXHR.ontimeout = function () {
-            sendParameters(json, index, (loop+1));
+            sendParameters(json, 0, (loop+1));
         }
         globalXHR.open('GET', url, true);
         globalXHR.send();
@@ -222,6 +234,7 @@ function loadParameters()
                 var el = document.getElementById('inverter-error');
                 el.style.display = 'block';
                 el.textContent = "Parameter Loading Canceled!";
+                document.getElementById('inverter-status').style.display = 'none';
                 //window.location.href = '#';
             });
             document.getElementsByClassName('progress-bar')[0].style.width = '0%';

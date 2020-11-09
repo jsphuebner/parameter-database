@@ -119,9 +119,9 @@ if(isset($_GET['id']))
 		
 		if (in_array($id, $dataId[0])) { //verify it belongs to user
 			
+			$sqlDrv->query("DELETE FROM pd_rating WHERE id=" .$id);
 			$sqlDrv->query("DELETE FROM pd_data WHERE setid=" .$id);
 			$sqlDrv->query("DELETE FROM pd_datasets WHERE id=" .$id);
-			$sqlDrv->query("DELETE FROM pd_rating WHERE id=" .$id);
 
 			header('Content-Type: text/html');
 			echo "Parameter ID: " .$id. " Deleted. <a href='my.html'>Back to My Profile</a>";

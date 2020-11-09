@@ -19,60 +19,64 @@ document.addEventListener("DOMContentLoaded", function(event)
                 tbody.appendChild(row);
             }
 
-    		for(var key in json)
-	        {
-	            //console.log(key);
+            if(json['error'] == undefined)
+            {
+	    		for(var key in json)
+		        {
+		            //console.log(key);
 
-                if(key == 0) //create table header
-                {
-        			var row = document.createElement('thead');
-        			row.className = 'thead-inverse';
+	                if(key == 0) //create table header
+	                {
+	        			var row = document.createElement('thead');
+	        			row.className = 'thead-inverse';
 
-                	for(var header in json[key])
-			        {
-	        			//console.log(header);
-		        		var col = document.createElement('th');
-		        		if(header != 'id') {
-    						col.textContent = header;
-    					}
+	                	for(var header in json[key])
+				        {
+		        			//console.log(header);
+			        		var col = document.createElement('th');
+			        		if(header != 'id') {
+	    						col.textContent = header;
+	    					}
+							row.appendChild(col);
+				        }
+				        table.appendChild(row);
+	                }
+
+	                var row = document.createElement('tr');
+
+	        		var i = 0;
+	        		var id = 0;
+	                for(var item in json[key])
+				    {
+				        console.log(json[key][item]);
+				        var col = document.createElement('td');
+				        if(i == 0) {
+				        	id = json[key][item];
+
+				        	var d = document.createElement('button');
+				        	d.className = 'btn btn-danger btn-sm';
+				        	d.setAttribute('title', 'Delete');
+				        	d.setAttribute('onclick', 'window.location.href="api.php?remove&id=' + id + '"');
+				        	d.textContent = 'X';
+				        	col.appendChild(d);
+				        }else if(i == 2) {
+				        	var a = document.createElement('a');
+				        	a.setAttribute('href', 'view.html?id=' + id);
+				        	a.textContent = json[key][item];
+				        	col.appendChild(a);
+				        }else{
+	        				col.textContent = json[key][item];
+						}
 						row.appendChild(col);
-			        }
-			        table.appendChild(row);
-                }
-
-                var row = document.createElement('tr');
-
-        		var i = 0;
-        		var id = 0;
-                for(var item in json[key])
-			    {
-			        console.log(json[key][item]);
-			        var col = document.createElement('td');
-			        if(i == 0) {
-			        	id = json[key][item];
-
-			        	var d = document.createElement('button');
-			        	d.className = 'btn btn-danger btn-sm';
-			        	d.setAttribute('title', 'Delete');
-			        	d.setAttribute('onclick', 'window.location.href="api.php?remove&id=' + id + '"');
-			        	d.textContent = 'X';
-			        	col.appendChild(d);
-			        }else if(i == 2) {
-			        	var a = document.createElement('a');
-			        	a.setAttribute('href', 'view.html?id=' + id);
-			        	a.textContent = json[key][item];
-			        	col.appendChild(a);
-			        }else{
-        				col.textContent = json[key][item];
-					}
-					row.appendChild(col);
-					i++;
-			    }
-			    tbody.appendChild(row);
-	        }
-	        table.appendChild(tbody);
-
-	        buildPages();
+						i++;
+				    }
+				    tbody.appendChild(row);
+		        }
+		        buildPages();
+	        }else{
+                tbody.appendChild(buildLogin());
+            }
+            table.appendChild(tbody);
         }
     };
     xhr.open('GET', 'api.php?&my=list', true);

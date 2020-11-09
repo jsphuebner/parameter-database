@@ -14,7 +14,7 @@ $auth->acl($user->data);
 $user->setup();
 
 $request->enable_super_globals();
-$loginRedirect = 'You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=' . $_SERVER['REQUEST_URI'] . '">login to the forum</a>, then try again.';
+$loginRedirect = 'You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=' . $_SERVER['REQUEST_URI'] . '">login to the forum</a>';
 
 require ('config.inc.php');
 
@@ -188,11 +188,11 @@ else if(isset($_GET['pages']))
 }
 else if(isset($_POST['submit']))
 {
-	header('Content-Type: text/html');
-
 	if (!$user->data['is_registered']) {
-		die($loginRedirect);
+		die(json_encode(['error'=>'login']));
 	}
+
+	header('Content-Type: text/html');
 
 	$request->enable_super_globals();
 	$data = json_encode($_SESSION['data']);
@@ -279,17 +279,14 @@ else if(isset($_FILES['data']) || isset($_POST['data']))
 {
 	header('Content-Type: text/html');
 
-	if (!$user->data['is_registered']) {
-		$loginRedirect = str_replace('api.php', 'add.html', $loginRedirect);
-		die($loginRedirect);
-	}
-
 	if (isset($_FILES['data'])) {
 		$data = file_get_contents($_FILES['data']['tmp_name']);
 	}else{
 		$data  = $_POST['data'];
 	}
 	$validation = json_decode($data,true);
+
+	unset($_SESSION['data']);
 
 	if (json_last_error() !== JSON_ERROR_NONE) {
 	    $_SESSION['data'] = json_decode(json_encode(['error'=>'json']));
@@ -355,7 +352,7 @@ else if(isset($_GET['my']))
 	$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_namedmetadata WHERE name='Userid' AND value=" .$user->data['user_id']. " LIMIT $OFFSET, $QUERYLIMIT");
 	
 	if(count($dataId) == 0) {
-		die("{}");
+		die(json_encode([]));
 	}
 
 	$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC"); // LIMIT $OFFSET, " .($QUERYLIMIT * 10));
@@ -400,8 +397,8 @@ else if(isset($_GET['my']))
 		//echo $sqlFilter;
 
 		$dataId = $sqlDrv->arrayQuery($sqlFilter);
-		if(count($dataId) == 0) {
-			die("{}");
+		if(sizeof($dataId) == 0) {
+			die(json_encode([]));
 		}else{
 			$sql .= "AND id IN (" . implode(",", dataIdArray($dataId)) . ") ";
 		}

@@ -139,6 +139,8 @@ document.addEventListener("DOMContentLoaded", function(event)
 				    };
 				    qxhr.open('GET', 'api.php?questions', true);
 				    qxhr.send();
+				}else if(json['error'] == 'login') {
+					upload.appendChild(buildLogin());
 				}else{
 					var error = document.createElement('div');
 					error.className = 'bg-danger text-light mt-4';

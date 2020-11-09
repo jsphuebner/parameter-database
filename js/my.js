@@ -30,11 +30,11 @@ document.addEventListener("DOMContentLoaded", function(event)
 
                 	for(var header in json[key])
 			        {
-			        	//if(header != 'id') {
-		        			//console.log(header);
-			        		var col = document.createElement('th');
-        					col.textContent = header;
-						//}
+	        			//console.log(header);
+		        		var col = document.createElement('th');
+		        		if(header != 'id') {
+    						col.textContent = header;
+    					}
 						row.appendChild(col);
 			        }
 			        table.appendChild(row);
@@ -49,11 +49,14 @@ document.addEventListener("DOMContentLoaded", function(event)
 			        console.log(json[key][item]);
 			        var col = document.createElement('td');
 			        if(i == 0) {
-			        	var a = document.createElement('a');
-			        	a.setAttribute('href', 'api.php?remove&id=' + json[key][item]);
-			        	a.textContent = 'Delete'; //json[key][item];
-			        	col.appendChild(a);
 			        	id = json[key][item];
+
+			        	var d = document.createElement('button');
+			        	d.className = 'btn btn-danger btn-sm';
+			        	d.setAttribute('title', 'Delete');
+			        	d.setAttribute('onclick', 'window.location.href="api.php?remove&id=' + id + '"');
+			        	d.textContent = 'X';
+			        	col.appendChild(d);
 			        }else if(i == 2) {
 			        	var a = document.createElement('a');
 			        	a.setAttribute('href', 'view.html?id=' + id);

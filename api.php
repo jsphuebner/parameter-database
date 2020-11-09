@@ -110,22 +110,23 @@ if(isset($_GET['id']))
 	}
 	else if(isset($_GET['remove']))
 	{
-		header('Content-Type: text/html');
-
 		if (!$user->data['is_registered']) {
-			die($loginRedirect);
+			die(json_encode(['error'=>'login']));
 		}
 
-		$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_namedmetadata WHERE name='Userid' AND value=" .$user->data['user_id']);
-
+		$dataId = $sqlDrv->arrayQuery("SELECT setid AS id FROM pd_metadata WHERE setid=$id AND value=" .$user->data['user_id']);
+		//print_r($dataId);
+		
 		if (in_array($id, $dataId[0])) { //verify it belongs to user
+			
 			$sqlDrv->query("DELETE FROM pd_data WHERE setid=" .$id);
 			$sqlDrv->query("DELETE FROM pd_datasets WHERE id=" .$id);
 			$sqlDrv->query("DELETE FROM pd_rating WHERE id=" .$id);
 
+			header('Content-Type: text/html');
 			echo "Parameter ID: " .$id. " Deleted. <a href='my.html'>Back to My Profile</a>";
 		}else{
-			header('Location: my.html');
+			die(json_encode(['error'=>'not allowed']));
 		}
 
 	}else{
@@ -202,15 +203,14 @@ else if(isset($_POST['submit']))
 	{
 		$sql.= "($setId, $id, '$value'),";
 	}
-
-	if(is_array($parameters->version->enums))
-	{
-		$swVer = $parameters->version->enums[$parameters->version->value];
-		$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
-	}else{ //regulat json import support
-		$swVer = parseEnum($parameters->version->unit)[$parameters->version->value];
-		$hwVer = parseEnum($parameters->hwver->unit)[$parameters->hwver->value];
+	//regulat json import support
+	if(!is_array($parameters->version->enums)) {
+		$parameters->version->enums = parseEnum($parameters->version->unit);
+		$parameters->hwver->enums = parseEnum($parameters->hwver->unit);
 	}
+	
+	$swVer = $parameters->version->enums[$parameters->version->value];
+	$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
 
 	$sql .= "($setId, 1, '$swVer'),";
 	$sql .= "($setId, 3, '$hwVer'),";
@@ -343,18 +343,19 @@ else if(isset($_GET['mobile']))
 else if(isset($_GET['my']))
 {
 	if (!$user->data['is_registered']) {
-		header('Content-Type: text/html');
-		die($loginRedirect);
+		die(json_encode(['error'=>'login']));
 	}
 
 	$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_namedmetadata WHERE name='Userid' AND value=" .$user->data['user_id']. " LIMIT $OFFSET, $QUERYLIMIT");
+	
 	if(count($dataId) == 0) {
 		die("{}");
 	}
-	$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", $dataId[0]). ") ORDER BY id ASC LIMIT $OFFSET, " .($QUERYLIMIT * 10));
+
+	$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC"); // LIMIT $OFFSET, " .($QUERYLIMIT * 10));
 	$lastId = 0;
 	$data = [];
-	
+
 	foreach ($rows as $row)
 	{
 		if ($lastId != $row['id'])
@@ -374,14 +375,18 @@ else if(isset($_GET['my']))
 	
 	if(isset($_SESSION['filter']))
 	{
-		$sqlFilter = "SELECT DISTINCT id FROM pd_namedmetadata ";
+		$sqlFilter = "SELECT DISTINCT setid AS id FROM pd_metadata ";
 		$index=0;
 		foreach ($_SESSION['filter'] as $id => $value)
 		{
+			$condition = "LIKE '%" . $value . "%'";
+			if (is_numeric($value)) {
+				$condition = ">= " . $value . "";
+			}
 			if($index == 0) {
-				$sqlFilter .= "WHERE value LIKE '%" . $value . "%' ";
+				$sqlFilter .= "WHERE (metaitem = $id AND value " .$condition. ") ";
 			}else{
-				$sqlFilter .= "AND value LIKE '%" . $value . "%' ";
+				$sqlFilter .= "OR (metaitem = $id AND value " .$condition. ") ";
 			}
 			$index++;
 		}
@@ -392,7 +397,7 @@ else if(isset($_GET['my']))
 		if(count($dataId) == 0) {
 			die("{}");
 		}else{
-			$sql .= "AND id IN (" . implode(",", $dataId[0]) . ") ";
+			$sql .= "AND id IN (" . implode(",", dataIdArray($dataId)) . ") ";
 		}
 	}
 	
@@ -417,6 +422,15 @@ else if(isset($_GET['my']))
 	echo json_encode($data);
 }
 
+function dataIdArray($dataId)
+{
+	$idArray = [];
+	foreach ($dataId as $id) {
+		array_push($idArray, $id['id']);
+	}
+	return $idArray;
+}
+
 function parseEnum($unit)
 {
 	$enums = [];
@@ -424,10 +438,22 @@ function parseEnum($unit)
 
 	if (is_array($res))
 	{
-		foreach($res as $key)
-		{
-			$expr = explode('=', $key);
-			array_push($enums, $expr[1]);
+		if(sizeof($res) == 1) {
+			$expr = explode('=', $unit);
+			$index = 0;
+			do {
+				if($index == $expr[0]) {
+					array_push($enums, $expr[1]);
+				}else{
+					array_push($enums, null);
+				}
+				$index++;
+			}while($index <= $expr[0]);
+		}else{
+			foreach($res as $key){
+				$expr = explode('=', $key);
+				array_push($enums, $expr[1]);
+			}
 		}
 		//print_r($enums);
 		return $enums;

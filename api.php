@@ -114,14 +114,15 @@ if(isset($_GET['id']))
 			die(json_encode(['error'=>'login']));
 		}
 
-		$dataId = $sqlDrv->arrayQuery("SELECT setid AS id FROM pd_metadata WHERE setid=$id AND value=" .$user->data['user_id']);
-		//print_r($dataId);
+		$userId = $sqlDrv->scalarQuery("SELECT value FROM pd_metadata,pd_datasets d WHERE setid=d.metadata AND d.id=$id AND metaitem=4");
+		$metasetId = $sqlDrv->scalarQuery("SELECT setid FROM pd_metadata,pd_datasets d WHERE setid=d.metadata AND d.id=$id AND metaitem=4");
 		
-		if (in_array($id, $dataId[0])) { //verify it belongs to user
+		if ($userId == $user->data['user_id']) { //verify it belongs to user
 			
-			$sqlDrv->query("DELETE FROM pd_data WHERE setid=" .$id);
-			$sqlDrv->query("DELETE FROM pd_datasets WHERE id=" .$id);
-			$sqlDrv->query("DELETE FROM pd_rating WHERE id=" .$id);
+			$sqlDrv->query("DELETE FROM pd_data WHERE setid=$id");
+			$sqlDrv->query("DELETE FROM pd_datasets WHERE id=$id");
+			$sqlDrv->query("DELETE FROM pd_rating WHERE id=$id");
+			$sqlDrv->query("DELETE FROM pd_metadata WHERE setid=$metasetId");
 
 			header('Content-Type: text/html');
 			echo "Parameter ID: " .$id. " Deleted. <a href='my.html'>Back to My Profile</a>";
@@ -131,6 +132,11 @@ if(isset($_GET['id']))
 
 	}else{
 		$data = $sqlDrv->arrayQuery("SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id");
+		
+		foreach ($data as &$row)
+		{
+			$row['enum'] = parseEnum($row['unit']);
+		}
 
 		echo json_encode($data);
 	}
@@ -433,32 +439,16 @@ function dataIdArray($dataId)
 
 function parseEnum($unit)
 {
-	$enums = [];
-	$res = explode(',', $unit);
-
-	if (is_array($res))
+	$enum = false;
+	$pattern = "/(\-{0,1}[0-9]+)=([a-zA-Z0-9_\-\.]+)[,\s]{0,2}|([a-zA-Z0-9_\-\.]+)[,\s]{1,2}/";
+	if (preg_match_all($pattern, $unit, $matches))
 	{
-		if(sizeof($res) == 1) {
-			$expr = explode('=', $unit);
-			$index = 0;
-			do {
-				if($index == $expr[0]) {
-					array_push($enums, $expr[1]);
-				}else{
-					array_push($enums, null);
-				}
-				$index++;
-			}while($index <= $expr[0]);
-		}else{
-			foreach($res as $key){
-				$expr = explode('=', $key);
-				array_push($enums, $expr[1]);
-			}
+		for ($i = 0; $i < count($matches[0]); $i++)
+		{
+			$enum[$matches[1][$i]] = $matches[2][$i];
 		}
-		//print_r($enums);
-		return $enums;
 	}
-	return false;
+	return $enum;
 }
 
 ?>

@@ -166,6 +166,16 @@ function cherryPick()
 	return filter.substring(1);
 }
 
+function sendParametersTimedOut(msg)
+{
+    setTimeout(function(){
+         document.getElementById('inverter-status').style.display = 'none';
+    var el = document.getElementById('inverter-error');
+         el.style.display = 'block';
+         el.textContent = msg;
+    }, globalXHR.timeout);
+}
+
 function sendParameters(json, index, loop)
 {
 	 //Requires Server to provide "Access-Control-Allow-Origin"
@@ -178,6 +188,7 @@ function sendParameters(json, index, loop)
 	 	document.getElementById('inverter-status').style.display = 'block';
 
 	 	var url = 'http://192.168.4.1/';
+        var url_cross_origin_test = 'http://192.168.4.1/refresh.png';
 	 	if(loop == 0) { //Original ESP Web-Interface
 	 		url += 'cmd?cmd=set '+ key + ' ' + json[key];
 				document.getElementById('inverter-status-text').textContent = 'Connecting to ESP8266 ...';
@@ -188,34 +199,38 @@ function sendParameters(json, index, loop)
 			url = 'http://127.0.0.1:8080/serial.php?set&name='+ key + '&value=' + json[key];
 				document.getElementById('inverter-status-text').textContent = 'Trying USB-TTL Web-Interface ...';
 	 	}else{
-				setTimeout(function(){
-					 document.getElementById('inverter-status').style.display = 'none';
-	  			var el = document.getElementById('inverter-error');
-					 el.style.display = 'block';
-					 el.textContent = "Connection Timed Out!";
-				}, globalXHR.timeout);
-				return;
+            sendParametersTimedOut('Connection Timed Out!');
+			return;
 	 	}
-		  console.log(key + "=" + json[key]);
+        console.log(key + "=" + json[key]);
 
-		  globalXHR.timeout = 6000;
-		  globalXHR.onload = function() {
-				if (globalXHR.status == 200) {
-					 document.getElementsByClassName('progress-bar')[0].style.width = (index/Object.keys(json).length*100) + '%';
-					 document.getElementById('inverter-status').style.display = 'none';
-					 sendParameters(json, (index+1), loop);
-				} else if (globalXHR.status == 404) {
-				sendParameters(json, 0, (loop+1));
-				}
-		  }
-		  globalXHR.onerror = function () {
-				sendParameters(json, 0, (loop+1));
-		  }
-		  globalXHR.ontimeout = function () {
-				sendParameters(json, 0, (loop+1));
-		  }
-		  globalXHR.open('GET', url, true);
-		  globalXHR.send();
+        globalXHR.timeout = 6000;
+        globalXHR.onload = function() {
+        	if (globalXHR.status == 200) {
+        		 document.getElementsByClassName('progress-bar')[0].style.width = (index/Object.keys(json).length*100) + '%';
+        		 document.getElementById('inverter-status').style.display = 'none';
+        		 sendParameters(json, (index+1), loop);
+        	} else if (globalXHR.status == 404) {
+        	sendParameters(json, 0, (loop+1));
+        	}
+        }
+        globalXHR.onerror = function () {
+            //Cross-Origin Detection (javascript works with images only)
+            var img = document.createElement('img');
+            img.onerror = function(args) {
+                console.log('Connection Error', args);
+                sendParameters(json, 0, (loop+1));
+            }
+            img.onload = function() {
+                sendParametersTimedOut('Cross-Origin Blocked! - Update ESP8266 Firmware');
+            }
+            img.src = url_cross_origin_test;
+        }
+        globalXHR.ontimeout = function () {
+        sendParameters(json, 0, (loop+1));
+        }
+        globalXHR.open('GET', url, true);
+        globalXHR.send();
 	 }else{
 		  document.getElementsByClassName('progress-bar')[0].style.width = '100%';
 		  document.getElementById('inverter-success').style.display = 'block';

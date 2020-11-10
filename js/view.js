@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 	 mxhr.onload = function() {
 		  if (mxhr.status == 200) {
 				var json = mxhr.response;
-				console.log(json);
+				//console.log(json);
 
 				var table = document.getElementById('parameter-metadata');
 				var tbody = document.createElement('tbody');
@@ -255,26 +255,24 @@ function loadParameters()
 				var json = xhr.response;
 				//console.log(json);
 
-				window.location.href = '#inverter-connect';
 				var modal = document.getElementById('inverter-connect');
 				modal.style.display = 'block';
 				modal.onclick = function(event){
-					 if (event.target !== this)
-						  return;
-					 this.style.display = 'none';
+					if (event.target !== this)
+						return;
+					this.style.display = 'none';
 				}
 				document.querySelector('.close').addEventListener('click', function(event) {
-					 //globalXHR.abort();
+					 globalXHR.abort();
 					 modal.style.display = 'none';
-					 //window.location.href = '#';
 				});
 				document.querySelector('.cancel').addEventListener('click', function(event) {
-					 globalXHR.abort();
-					 var el = document.getElementById('inverter-error');
-					 el.style.display = 'block';
-					 el.textContent = "Parameter Loading Canceled!";
-					 document.getElementById('inverter-status').style.display = 'none';
-					 //window.location.href = '#';
+					globalXHR.abort();
+					var el = document.getElementById('inverter-error');
+					el.style.display = 'block';
+					el.textContent = "Parameter Loading Canceled!";
+					document.getElementById('inverter-status').style.display = 'none';
+					//window.location.href = '#';
 				});
 				document.getElementsByClassName('progress-bar')[0].style.width = '0%';
 				document.getElementById('inverter-error').style.display = 'none';
@@ -286,7 +284,58 @@ function loadParameters()
 	 xhr.send();
 }
 
+function subscribeParameters()
+{
+	document.getElementById('inverter-subscribe-success').style.display = 'none';
+
+	var modal = document.getElementById('inverter-subscribe');
+	modal.style.display = 'block';
+	modal.onclick = function(event) {
+		this.style.display = 'none';
+	}
+	document.querySelector('.close').addEventListener('click', function(event) {
+		modal.style.display = 'none';
+	});
+
+	var guid = create_UUID();
+	var token = document.getElementById('inverter-subscribe-token');
+	token.setAttribute('value', guid);
+	token.onclick = function(event) {
+		
+		if (event.stopPropagation) {
+			event.stopPropagation();
+	   	}else if(window.event) {
+			window.event.cancelBubble=true;
+	   	}
+
+		var xhr = new XMLHttpRequest();
+		xhr.responseType = 'json';
+		xhr.onload = function() {
+			if (xhr.status == 200) {
+				var json = xhr.response;
+				console.log(json);
+			}
+		};
+		xhr.open('GET', 'api.php?subscribe&' + window.location.search.substr(1) + '&token=' + guid + '&filter=' + cherryPick(), true);
+		xhr.send();
+	   	
+		this.select();
+		document.execCommand('copy');
+		document.getElementById('inverter-subscribe-success').style.display = 'block';
+	}
+}
+
 function downloadParameters()
 {
 	window.location.href = 'api.php?' + window.location.search.substr(1) + '&download&filter=' + cherryPick();
+}
+
+function create_UUID(){
+    var dt = new Date().getTime();
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = (dt + Math.random()*16)%16 | 0;
+        dt = Math.floor(dt/16);
+        return (c=='x' ? r :(r&0x3|0x8)).toString(16);
+    });
+    return uuid;
 }

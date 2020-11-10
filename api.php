@@ -43,9 +43,10 @@ if(isset($_GET['id']))
 		}else{
 
 			if(isset($_SESSION['rating-'. $id])) {
-				$rating = -1;
+				die(json_encode([]));
 			}else{
 
+				$timestamp = date('Y-m-d H:i:s');
 				if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
 				    $ip = $_SERVER['HTTP_CLIENT_IP'];
 				}else if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
@@ -58,8 +59,13 @@ if(isset($_GET['id']))
 				if (empty($data)) {
 					$sqlDrv->query("INSERT pd_rating (id,rating,count) VALUES ($id,$rating,1)");
 				}else{
+					//Brute force security prevention against non-cookie submitions
+					$securitystamp = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+					if ($data[0]["ip"] == $ip && $data[0]["stamp"] < $securitystamp) {
+						die(json_encode([]));
+					}
 					$rating = (floatval($data[0]["rating"]) * $count + floatval($rating)) / ($count+1);
-					$sqlDrv->query("UPDATE pd_rating SET rating=" .$rating. ",count=count+1,ip='" .$ip. "' WHERE id=$id");
+					$sqlDrv->query("UPDATE pd_rating SET rating=" .$rating. ",count=count+1,stamp='" .$timestamp. "',ip='" .$ip. "' WHERE id=$id");
 				}
 				$sqlDrv->query("COMMIT");
 
@@ -67,6 +73,26 @@ if(isset($_GET['id']))
 			}
 
 			echo json_encode(['rating' => number_format($rating, 2, '.', ''),'count' => ($count+1)]);
+		}
+	}
+	else if(isset($_GET['subscribe']))
+	{
+		if(isset($_GET['token']))
+		{
+			$token = $_GET['token'];
+			$filter = explode(':', $_GET['filter']);
+
+			//Find category ids from names (takes less DB space)
+			//TODO: Use catindex in GUI - no conversion will be needed here
+			$filterId = $sqlDrv->arrayQuery("SELECT DISTINCT catindex as id, catindex FROM pd_parameters WHERE category IN ('" . implode("','", $filter) . "')");
+
+			$sqlDrv->query("START TRANSACTION");
+			$sqlDrv->query("INSERT pd_subscription (token, id, filter) VALUES ('$token', $id, '" .implode(":", dataIdArray($filterId)). "')");
+			$sqlDrv->query("COMMIT");
+			
+			echo json_encode(['token' => $token]);
+		}else{
+			echo json_encode([]);
 		}
 	}
 	else if(isset($_GET['metadata']))
@@ -93,7 +119,7 @@ if(isset($_GET['id']))
 				$httpHeader .= $metadata["Inverter Type"]. "-";
 			}
 			$filter = explode(':', $_GET['filter']);
-			$sql .= ' AND category IN  ("' . implode('", "', $filter) . '")';
+			$sql .= ' AND category IN  ("' . implode('","', $filter) . '")';
 		}
 		$httpHeader .= $metadata["Driven wheels"] . "-" . $metadata["Timestamp"] . ".json\"";
 
@@ -132,7 +158,7 @@ if(isset($_GET['id']))
 
 	}else{
 		$data = $sqlDrv->arrayQuery("SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id");
-		
+
 		foreach ($data as &$row)
 		{
 			$row['enum'] = parseEnum($row['unit']);
@@ -140,6 +166,48 @@ if(isset($_GET['id']))
 
 		echo json_encode($data);
 	}
+}
+else if(isset($_GET['token']))
+{
+	//No authentication needed only token #
+	$token = $_GET['token'];
+
+	$dataId = $sqlDrv->arrayQuery("SELECT id, filter FROM pd_subscription WHERE token='$token'");
+	//print_r($dataId); //debug
+
+	if(count($dataId) == 0) {
+		die(json_encode([]));
+	}
+
+	//Set last activity
+	$timestamp = date('Y-m-d H:i:s');
+	$sqlDrv->query("UPDATE pd_subscription SET stamp='$timestamp' WHERE token='$token'");
+	//TODO: Remove OLD/UNUSED Tokens (6 month)???
+
+	$filter = explode(':', $dataId[0]['filter']);
+
+	$rows = $sqlDrv->arrayQuery("SELECT 
+		d.setid AS setid,
+		p.category AS category,
+		p.name AS name,
+		p.unit AS unit,
+		d.value AS value
+	FROM pd_parameters p
+		JOIN pd_data d
+		JOIN pd_subscription s
+	WHERE
+		p.id = d.parameter AND
+		s.token = '$token' AND
+		p.catindex IN (" .implode(",", $filter). ")");
+	//print_r($rows); //debug
+
+	$data = [];
+
+	foreach ($rows as $row)
+	{
+		$data += [$row['name'] => $row['value']];
+	}
+	echo json_encode($data, JSON_PRETTY_PRINT);
 }
 else if(isset($_GET['user']))
 {

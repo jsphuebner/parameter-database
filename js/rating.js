@@ -35,7 +35,7 @@ function buildRating(element, id, showStatistics)
                         if (sxhr.status == 200) {
                             var json = sxhr.response;
                             //console.log(json);
-                            if(json["rating"] == -1) {
+                            if(Object.keys(json).length == 0) {
                                 //Cannot Vote Twice!
                                 var i = 4;
                                 var flash = setInterval(function() {

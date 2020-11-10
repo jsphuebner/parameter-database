@@ -52,6 +52,15 @@ create table pd_rating (
     foreign key (id) references pd_datasets(id)
 );
 
+create table pd_subscription (
+    token varchar(36) NOT NULL,
+    id int NOT NULL,
+    filter varchar(100),
+    stamp timestamp DEFAULT CURRENT_TIMESTAMP,
+    primary key(token),
+    foreign key (id) references pd_datasets(id)
+);
+
 create table pd_data (
     setid int NOT NULL,
     parameter int not null,

@@ -26,6 +26,9 @@
                 <button type="button" class="btn btn-success" onclick="loadParameters()"> Load to Inverter</button>
             </div>
             <div class="col">
+                <button type="button" class="btn btn-secondary" onclick="subscribeParameters()"> Subscribe</button>
+            </div>
+            <div class="col">
                 <button type="button" class="btn btn-primary" onclick="downloadParameters()"> Download File</button>
             </div>
         </div>
@@ -37,6 +40,24 @@
 			</div>
 		</div>
 	</div>
+    <div class="modalDialog" id="inverter-subscribe">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Subscription Token</h5>
+                    <button type="button" class="close btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    Copy & Paste into "Inverter Subscription"
+                    <input type="text" class="form-control mb-3" id="inverter-subscribe-token" />
+                    <div id="inverter-subscribe-success" class="bg-secondary text-white text-center mb-3 hidden">Copied!</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="close btn btn-secondary">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="modalDialog" id="inverter-connect">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">

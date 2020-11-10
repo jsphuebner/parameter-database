@@ -181,6 +181,8 @@ if(isset($_GET['id']))
 }
 else if(isset($_GET['token']))
 {
+	header("Access-Control-Allow-Origin: *");
+
 	//No authentication needed only token #
 	$token = $_GET['token'];
 
@@ -208,6 +210,7 @@ else if(isset($_GET['token']))
 		JOIN pd_subscription s
 	WHERE
 		p.id = d.parameter AND
+		s.id = d.setid AND
 		s.token = '$token' AND
 		p.catindex IN (" .implode(",", $filter). ")");
 	//print_r($rows); //debug

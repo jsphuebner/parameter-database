@@ -198,6 +198,14 @@ else if(isset($_GET['token']))
 	$sqlDrv->query("UPDATE pd_subscription SET stamp='$timestamp' WHERE token='$token'");
 
 	$filter = explode(':', $dataId[0]['filter']);
+	
+	$timestamp = $sqlDrv->scalarQuery("SELECT value AS timestamp		
+	FROM pd_namedmetadata m
+		JOIN pd_subscription s
+	WHERE
+        s.id = m.id AND
+        m.name = 'Timestamp' AND
+		s.token = '$token'");
 
 	$rows = $sqlDrv->arrayQuery("SELECT 
 		d.setid AS setid,
@@ -215,7 +223,7 @@ else if(isset($_GET['token']))
 		p.catindex IN (" .implode(",", $filter). ")");
 	//print_r($rows); //debug
 
-	$data = [];
+	$data = ["timestamp" => $timestamp];
 
 	foreach ($rows as $row)
 	{

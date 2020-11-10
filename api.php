@@ -89,6 +89,9 @@ if(isset($_GET['id']))
 			$sqlDrv->query("START TRANSACTION");
 			$sqlDrv->query("INSERT pd_subscription (token, id, filter) VALUES ('$token', $id, '" .implode(":", dataIdArray($filterId)). "')");
 			$sqlDrv->query("COMMIT");
+
+			//Remove OLD/UNUSED/INACTIVE Tokens (6 Month)
+			$sqlDrv->query("DELETE token FROM pd_subscription WHERE stamp >= (NOW() + INTERVAL 6 MONTH)");
 			
 			echo json_encode(['token' => $token]);
 		}else{
@@ -153,9 +156,10 @@ if(isset($_GET['id']))
 		
 		if ($userId == $user->data['user_id']) { //verify it belongs to user
 			
+			$sqlDrv->query("DELETE FROM pd_rating WHERE id=$id");
+			$sqlDrv->query("DELETE FROM pd_subscription WHERE id=$id");
 			$sqlDrv->query("DELETE FROM pd_data WHERE setid=$id");
 			$sqlDrv->query("DELETE FROM pd_datasets WHERE id=$id");
-			$sqlDrv->query("DELETE FROM pd_rating WHERE id=$id");
 			$sqlDrv->query("DELETE FROM pd_metadata WHERE setid=$metasetId");
 
 			header('Content-Type: text/html');
@@ -190,7 +194,6 @@ else if(isset($_GET['token']))
 	//Set last activity
 	$timestamp = date('Y-m-d H:i:s');
 	$sqlDrv->query("UPDATE pd_subscription SET stamp='$timestamp' WHERE token='$token'");
-	//TODO: Remove OLD/UNUSED Tokens (6 month)???
 
 	$filter = explode(':', $dataId[0]['filter']);
 

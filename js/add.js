@@ -47,7 +47,23 @@ document.addEventListener("DOMContentLoaded", function(event)
 		                    colspan = Object.keys(json[key]);
 		                    for (i = 1; i < colspan.length-2; i++)
 		                    {
-		                        var col = document.createElement('th');
+		                    	if(json['DIFF'] != undefined)
+		                    	{
+			                    	if (i == 1){
+			                    		var col = document.createElement('th');
+				                        col.textContent = 'old value';
+				                        row.appendChild(col);
+				                        var col = document.createElement('th');
+				                        col.textContent = 'new value';
+				                        row.appendChild(col);
+				                        continue;
+			                    	}else if (i == 2) {
+										var col = document.createElement('th');
+				                        col.textContent = 'update';
+				                        row.appendChild(col);
+			                    	}
+			                    }
+			                   var col = document.createElement('th');
 		                        col.textContent = colspan[i];
 		                        row.appendChild(col);
 		                    }
@@ -70,6 +86,8 @@ document.addEventListener("DOMContentLoaded", function(event)
 		                        row.className = 'text-light bg-secondary';
 		                        
 		                        var colspan = Object.keys(json[key]).length;
+		                        if(json['DIFF'] != undefined)
+		                        	colspan += 2;
 		                        var col = document.createElement('td');
 		                        col.setAttribute('colspan', colspan);
 		                        col.textContent = json[key].category;
@@ -89,9 +107,36 @@ document.addEventListener("DOMContentLoaded", function(event)
 		                    colspan = Object.keys(json[key]);
 		                    for (i = 1; i < colspan.length-2; i++)
 		                    {
-		                        var col = document.createElement('td');
-		                        col.textContent = json[key][colspan[i]];
-		                        row.appendChild(col);
+		                    	if(json['DIFF'] != undefined) {
+		                    		if (i == 1) {
+										var col = document.createElement('td');
+										if(json['DIFF'][key] != undefined){
+											col.textContent = json['DIFF'][key]['value']['old'];
+										}
+				                        row.appendChild(col);
+				                    }else if (i == 2) {
+				                    	var col = document.createElement('td');
+
+				                    	if(json['DIFF'][key] != undefined) {
+				                    		row.className = 'bg-warning';
+				                    		var checkbox = document.createElement('input');
+					                        checkbox.className = 'form-check-input';
+					                        checkbox.setAttribute('type', 'checkbox');
+					                        checkbox.setAttribute('id', 'u' + key);
+					                        checkbox.checked = true;
+					                        col.appendChild(checkbox);
+				                    	}
+
+				                        row.appendChild(col);
+				                    }
+				                    var col = document.createElement('td');
+				                    col.textContent = json[key][colspan[i]];
+				                    row.appendChild(col);
+		                    	}else{
+			                        var col = document.createElement('td');
+			                        col.textContent = json[key][colspan[i]];
+			                        row.appendChild(col);
+			                    }
 		                    }
 
 		                    var col = document.createElement('td');

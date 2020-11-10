@@ -179,58 +179,6 @@ if(isset($_GET['id']))
 		echo json_encode($data);
 	}
 }
-else if(isset($_GET['token']))
-{
-	header("Access-Control-Allow-Origin: *");
-
-	//No authentication needed only token #
-	$token = $_GET['token'];
-
-	$dataId = $sqlDrv->arrayQuery("SELECT id, filter FROM pd_subscription WHERE token='$token'");
-	//print_r($dataId); //debug
-
-	if(count($dataId) == 0) {
-		die(json_encode([]));
-	}
-
-	//Set last activity
-	$timestamp = date('Y-m-d H:i:s');
-	$sqlDrv->query("UPDATE pd_subscription SET stamp='$timestamp' WHERE token='$token'");
-
-	$filter = explode(':', $dataId[0]['filter']);
-	
-	$timestamp = $sqlDrv->scalarQuery("SELECT value AS timestamp		
-	FROM pd_namedmetadata m
-		JOIN pd_subscription s
-	WHERE
-        s.id = m.id AND
-        m.name = 'Timestamp' AND
-		s.token = '$token'");
-
-	$rows = $sqlDrv->arrayQuery("SELECT 
-		d.setid AS setid,
-		p.category AS category,
-		p.name AS name,
-		p.unit AS unit,
-		d.value AS value
-	FROM pd_parameters p
-		JOIN pd_data d
-		JOIN pd_subscription s
-	WHERE
-		p.id = d.parameter AND
-		s.id = d.setid AND
-		s.token = '$token' AND
-		p.catindex IN (" .implode(",", $filter). ")");
-	//print_r($rows); //debug
-
-	$data = ["timestamp" => $timestamp];
-
-	foreach ($rows as $row)
-	{
-		$data += [$row['name'] => $row['value']];
-	}
-	echo json_encode($data, JSON_PRETTY_PRINT);
-}
 else if(isset($_GET['user']))
 {
 	if ($user->data['is_registered']) {
@@ -358,6 +306,10 @@ else if(isset($_POST['submit']))
 }
 else if(isset($_GET['submit']))
 {
+	if (!$user->data['is_registered']) {
+		die(json_encode(['error'=>'login']));
+	}
+
 	if(isset($_SESSION['data']))
 	{
 		/*
@@ -369,7 +321,53 @@ else if(isset($_GET['submit']))
 		*/
 		if(isset($_GET['token']))
 		{
+			$token = $_GET['token'];
+			$userId = $sqlDrv->scalarQuery("SELECT value AS id 
+			FROM pd_namedmetadata m
+				JOIN pd_subscription s
+			WHERE
+		        s.id = m.id AND
+		        m.name = 'UserId' AND
+				s.token = '$token'");
 
+			if ($userId == $user->data['user_id']) { //verify it belongs to user
+				//NEW parameters
+				$data = json_decode(json_encode($_SESSION['data']),true);
+
+				//EXISTING parameters
+				$rows = $sqlDrv->arrayQuery("SELECT 
+					d.setid AS setid,
+					p.category AS category,
+					p.name AS name,
+					p.unit AS unit,
+					d.value AS value
+				FROM pd_parameters p
+					JOIN pd_data d
+					JOIN pd_subscription s
+				WHERE
+					p.id = d.parameter AND
+					s.id = d.setid AND
+					s.token = '$token'");
+
+				$difference = [];
+				foreach ($rows as $row)
+				{
+					$diff = [];
+					if($data[$row['name']]['value'] != floatval($row['value'])) {
+						$diff += ['value' => ['old' => floatval($row['value']), 'new' => $data[$row['name']]['value']]];
+					}
+					if(sizeof($diff) > 0) {
+						$difference += [$row['name'] => $diff];
+					}
+				}
+				if(sizeof($difference) > 0) {
+					$data += ['DIFF' => $difference];
+				}
+
+				echo json_encode($data);
+			}else{
+				echo json_encode($_SESSION['data']);
+			}
 		}else{
 			echo json_encode($_SESSION['data']);
 		}
@@ -485,6 +483,58 @@ else if(isset($_GET['my']))
 		}
 		echo json_encode($data);
 	}
+}
+else if(isset($_GET['token']))
+{
+	header("Access-Control-Allow-Origin: *");
+
+	//No authentication needed only token #
+	$token = $_GET['token'];
+
+	$dataId = $sqlDrv->arrayQuery("SELECT id, filter FROM pd_subscription WHERE token='$token'");
+	//print_r($dataId); //debug
+
+	if(count($dataId) == 0) {
+		die(json_encode([]));
+	}
+
+	//Set last activity
+	$timestamp = date('Y-m-d H:i:s');
+	$sqlDrv->query("UPDATE pd_subscription SET stamp='$timestamp' WHERE token='$token'");
+
+	$filter = explode(':', $dataId[0]['filter']);
+	
+	$timestamp = $sqlDrv->scalarQuery("SELECT value AS timestamp		
+	FROM pd_namedmetadata m
+		JOIN pd_subscription s
+	WHERE
+        s.id = m.id AND
+        m.name = 'Timestamp' AND
+		s.token = '$token'");
+
+	$rows = $sqlDrv->arrayQuery("SELECT 
+		d.setid AS setid,
+		p.category AS category,
+		p.name AS name,
+		p.unit AS unit,
+		d.value AS value
+	FROM pd_parameters p
+		JOIN pd_data d
+		JOIN pd_subscription s
+	WHERE
+		p.id = d.parameter AND
+		s.id = d.setid AND
+		s.token = '$token' AND
+		p.catindex IN (" .implode(",", $filter). ")");
+	//print_r($rows); //debug
+
+	$data = ["timestamp" => $timestamp];
+
+	foreach ($rows as $row)
+	{
+		$data += [$row['name'] => $row['value']];
+	}
+	echo json_encode($data, JSON_PRETTY_PRINT);
 }else{
 
 	$sql = "SELECT id, name, value FROM pd_namedmetadata WHERE name != 'Userid' ";

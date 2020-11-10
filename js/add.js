@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 					    	h.textContent = 'Questions';
 					    	form.appendChild(h);
 
-							buildQuestionForm(json,form, []);
+							buildQuestionForm(json,form, [], [1,3]);
 
 					        var fieldset = document.createElement('div');
 				            fieldset.className = 'form-group';
@@ -152,6 +152,6 @@ document.addEventListener("DOMContentLoaded", function(event)
             table.appendChild(tbody);
         }
     };
-    xhr.open('GET', 'api.php?submit', true);
+    xhr.open('GET', 'api.php?submit&' + window.location.search.substr(1), true);
     xhr.send();
 });

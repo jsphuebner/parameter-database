@@ -349,7 +349,19 @@ else if(isset($_GET['submit']))
 {
 	if(isset($_SESSION['data']))
 	{
-		echo json_encode($_SESSION['data']);
+		/*
+		Update Logic:
+		- Check if TOKEN belongs to submited user? (self-subscribed to your own parameters)
+			> YES ask ADD new or UPDATE existing (we know which token belongs to which parameter id)
+			> NO submit NEW
+		- API show differences (like git compare)
+		*/
+		if(isset($_GET['token']))
+		{
+
+		}else{
+			echo json_encode($_SESSION['data']);
+		}
 	}else{
 		echo json_encode([]);
 	}
@@ -389,7 +401,20 @@ else if(isset($_GET['questions']))
 
 	foreach ($sqlDrv->arrayQuery($sql) as $row)
 	{
-		array_push($data,[$row['id'] => stripslashes($row['question']),'type' => $row['type'],'options' => $row['options']]);
+		$question = [$row['id'] => stripslashes($row['question']),'type' => $row['type'],'options' => $row['options']];
+
+		//Pre-Fill Answers
+		if(isset($_SESSION['filter'])) //Filter
+		{
+			$question += ['value' => $_SESSION['filter'][$row['id']]];
+		}
+		else if(isset($_GET['token'])) //Existing Parameter
+		{
+			$question += ['value' => ''];
+		}else{
+			$question += ['value' => ''];
+		}
+		array_push($data,$question);
 	}
 
 	echo json_encode($data);
@@ -430,22 +455,16 @@ else if(isset($_GET['my']))
 			$lastId = $row['id'];
 		}
 		
-		//TODO: Improve Efficiency? Add subscriber count as last
-		$lastId = 0;
+		//Add subscriber count as last
 		$index = 0;
-		foreach ($rows as $row)
+		foreach ($data as $row)
 		{
-			if ($lastId != $row['id'])
-			{
-				//print_r($data[$index]); //debug
-				if(isset($subs[$row['id']])) {
-					$data[$index] += ['Subscribers' => intval($subs[$row['id']])];
-				}else{
-					$data[$index] += ['Subscribers' => 0];
-				}
-				$index++;
+			if(isset($subs[$row['id']])) {
+				$data[$index] += ['Subscribers' => intval($subs[$row['id']])];
+			}else{
+				$data[$index] += ['Subscribers' => 0];
 			}
-			$lastId = $row['id'];
+			$index++;
 		}
 		echo json_encode($data);
 	}

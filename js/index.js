@@ -98,15 +98,13 @@ document.addEventListener("DOMContentLoaded", function(event)
                     //console.log(filter);
 
                     var form = document.getElementById('database-filter');
-
-                    buildQuestionForm(JSON.parse('[{"1":"Firmware Version?","type":"select","options":"Sine,FOC"},{"3":"Hardware Variant?","type":"select","options":"Rev1,Rev2,Rev3,Tesla,TeslaM3,BluePill,Prius"}]'), form, filter);
-
-                    buildQuestionForm(json, form, filter);
+                    
+                    buildQuestionForm(json, form, filter, []);
 
                     var submit = document.createElement('button');
                     submit.setAttribute('type', 'submit');
                     submit.setAttribute('name', 'filter');
-                    submit.className = 'btn btn-primary';
+                    submit.className = 'btn btn-secondary';
                     submit.textContent = 'Filter Results';
                     form.appendChild(submit);
 

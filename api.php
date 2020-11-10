@@ -247,11 +247,6 @@ else if(isset($_POST['submit']))
 	{
 		$sql.= "($setId, $id, '$value'),";
 	}
-	//regulat json import support
-	if(!is_array($parameters->version->enums)) {
-		$parameters->version->enums = parseEnum($parameters->version->unit);
-		$parameters->hwver->enums = parseEnum($parameters->hwver->unit);
-	}
 	
 	$swVer = $parameters->version->enums[$parameters->version->value];
 	$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
@@ -322,7 +317,8 @@ else if(isset($_GET['submit']))
 		if(isset($_GET['token']))
 		{
 			$token = $_GET['token'];
-			$userId = $sqlDrv->scalarQuery("SELECT value AS id 
+			$userId = $sqlDrv->scalarQuery("SELECT
+				m.value AS id
 			FROM pd_namedmetadata m
 				JOIN pd_subscription s
 			WHERE
@@ -333,6 +329,25 @@ else if(isset($_GET['submit']))
 			if ($userId == $user->data['user_id']) { //verify it belongs to user
 				//NEW parameters
 				$data = json_decode(json_encode($_SESSION['data']),true);
+
+				//Check make sure Version (Sine/FOC) + Hardware match
+				$answers = $sqlDrv->mapQuery("SELECT 
+					m.name AS name,
+					m.value AS value
+				FROM pd_namedmetadata m
+					JOIN pd_subscription s
+				WHERE
+					m.id = s.id AND
+					(m.name = 'Version' OR m.name = 'Hardware Variant') AND
+					s.token = '$token'", "name");
+				//print_r($answers); //debug
+
+				$swVer = $data['version']['enums'][$data['version']['value']];
+				$hwVer = $data['hwver']['enums'][$data['hwver']['value']];
+
+				if ($answers['Hardware Variant'] != $hwVer) {
+					die(json_encode(['error'=>'hardware']));
+				}
 
 				//EXISTING parameters
 				$rows = $sqlDrv->arrayQuery("SELECT 
@@ -384,16 +399,22 @@ else if(isset($_FILES['data']) || isset($_POST['data']))
 	}else{
 		$data  = $_POST['data'];
 	}
-	$validation = json_decode($data,true);
+	$data = json_decode($data, true);
 
 	unset($_SESSION['data']);
 
+	//regulat json import support
+	if(!is_array($data['version']['enums'])) {
+		$data['version']['enums'] = parseEnum($data['version']['unit']);
+		$data['hwver']['enums'] = parseEnum($data['hwver']['unit']);
+	}
+
 	if (json_last_error() !== JSON_ERROR_NONE) {
 	    $_SESSION['data'] = json_decode(json_encode(['error'=>'json']));
-	}else if(!is_array(array_values($validation)[0])) {
+	}else if(!is_array(array_values($data)[0])) {
 		$_SESSION['data'] = json_decode(json_encode(['error'=>'validation']));
 	}else{
-		$_SESSION['data'] = json_decode($data);
+		$_SESSION['data'] = json_decode(json_encode($data));
 	}
 
 	if (!$user->data['is_registered']) {
@@ -401,7 +422,11 @@ else if(isset($_FILES['data']) || isset($_POST['data']))
 		die($loginRedirect);
 	}
 
-	header('Location: add.html');
+	if(isset($_POST['token'])) {
+	 	header('Location: add.html?token=' .$_POST['token']);
+	}else{
+	 	header('Location: add.html');
+	}
 }
 else if(isset($_GET['questions']))
 {
@@ -410,7 +435,7 @@ else if(isset($_GET['questions']))
 
 	foreach ($sqlDrv->arrayQuery($sql) as $row)
 	{
-		if($row['options'] == null) {
+		if($row['type'] == 'select' && $row['options'] == null) {
 			$options = $sqlDrv->arrayQuery("SELECT DISTINCT value FROM pd_metadata where metaitem=" .$row['id']);
 			$options = implode("','", $options[0]);
 		}else{
@@ -425,9 +450,20 @@ else if(isset($_GET['questions']))
 		}
 		else if(isset($_GET['token'])) //Existing Parameter
 		{
-			$question += ['value' => ''];
+			$token = $_GET['token'];
+			$answers = $sqlDrv->mapQuery("SELECT 
+					m.metaitem AS id,
+					m.value AS value
+				FROM pd_metadata m
+					JOIN pd_subscription s
+				WHERE
+					m.setid = s.id AND
+					s.token = '$token'", "id");
+			//print_r($answers); //debug
+
+			$question += ['value' => $answers[$row['id']]];
 		}else{
-			$question += ['value' => ''];
+			$question += ['value' => null];
 		}
 		array_push($data,$question);
 	}

@@ -12,19 +12,12 @@ document.addEventListener("DOMContentLoaded", function(event)
 
 	        var upload = document.getElementById('parameter-upload');
 
-	    	var h = document.createElement('h2');
-	    	h.textContent = 'Upload Parameters';
-	    	upload.appendChild(h);
-
-	       	var submit = document.createElement('input');
-		    submit.setAttribute('type', 'file');
-		    submit.setAttribute('name', 'data');
-		    submit.setAttribute('accept', '.json');
-			submit.textContent = 'Browse Parameter File';
-			submit.onchange = function() {
-				this.form.submit();
-			}
-			upload.appendChild(submit);
+	       	var token = document.createElement('input');
+		    token.setAttribute('type', 'text');
+		    token.setAttribute('name', 'token');
+		    token.setAttribute('hidden', true);
+		    token.setAttribute('value', window.location.search.substr(1).replace('token=',''));
+			upload.appendChild(token);
 
             if(Object.keys(json).length > 0)
             {
@@ -40,6 +33,12 @@ document.addEventListener("DOMContentLoaded", function(event)
 		                    var row = document.createElement('thead');
 		                    row.className = 'thead-inverse';
 
+							if(json['DIFF'] != undefined)
+		                    {
+								var col = document.createElement('th');
+			                    col.textContent = 'update';
+			                    row.appendChild(col);
+		                    }
 		                    var col = document.createElement('th');
 		                    col.textContent = 'parameter';
 		                    row.appendChild(col);
@@ -57,10 +56,6 @@ document.addEventListener("DOMContentLoaded", function(event)
 				                        col.textContent = 'new value';
 				                        row.appendChild(col);
 				                        continue;
-			                    	}else if (i == 2) {
-										var col = document.createElement('th');
-				                        col.textContent = 'update';
-				                        row.appendChild(col);
 			                    	}
 			                    }
 			                   var col = document.createElement('th');
@@ -100,6 +95,28 @@ document.addEventListener("DOMContentLoaded", function(event)
 		                var row = document.createElement('tr');
 		                if(json[key].category != undefined)
 		                {
+		                	if(json['DIFF'] != undefined)
+		                    {
+								var col = document.createElement('td');
+
+		                    	if(json['DIFF'][key] != undefined) {
+		                    		if (json['DIFF'][key].value.old != undefined)
+		                    		{
+		                    			row.className = 'bg-warning';
+		                    		}else if (json['DIFF'][key].value.delete != undefined) {
+		                    			row.className = 'bg-danger';
+		                    		}
+		                    		row.className = 'bg-warning';
+		                    		var checkbox = document.createElement('input');
+			                        checkbox.className = 'form-check-input';
+			                        checkbox.setAttribute('type', 'checkbox');
+			                        checkbox.setAttribute('id', 'u' + key);
+			                        checkbox.checked = true;
+			                        col.appendChild(checkbox);
+		                    	}
+
+		                        row.appendChild(col);
+		                    }
 		                    var col = document.createElement('td');
 		                    col.textContent = key;
 		                    row.appendChild(col);
@@ -108,25 +125,11 @@ document.addEventListener("DOMContentLoaded", function(event)
 		                    for (i = 1; i < colspan.length-2; i++)
 		                    {
 		                    	if(json['DIFF'] != undefined) {
-		                    		if (i == 1) {
+				                    if (i == 1) {
 										var col = document.createElement('td');
 										if(json['DIFF'][key] != undefined){
-											col.textContent = json['DIFF'][key]['value']['old'];
+											col.textContent = json['DIFF'][key].value.old;
 										}
-				                        row.appendChild(col);
-				                    }else if (i == 2) {
-				                    	var col = document.createElement('td');
-
-				                    	if(json['DIFF'][key] != undefined) {
-				                    		row.className = 'bg-warning';
-				                    		var checkbox = document.createElement('input');
-					                        checkbox.className = 'form-check-input';
-					                        checkbox.setAttribute('type', 'checkbox');
-					                        checkbox.setAttribute('id', 'u' + key);
-					                        checkbox.checked = true;
-					                        col.appendChild(checkbox);
-				                    	}
-
 				                        row.appendChild(col);
 				                    }
 				                    var col = document.createElement('td');
@@ -182,10 +185,15 @@ document.addEventListener("DOMContentLoaded", function(event)
 							form.appendChild(submit);
 				        }
 				    };
-				    qxhr.open('GET', 'api.php?questions', true);
+				    qxhr.open('GET', 'api.php?questions&' + window.location.search.substr(1), true);
 				    qxhr.send();
 				}else if(json['error'] == 'login') {
 					upload.appendChild(buildLogin());
+				}else if(json['error'] == 'hardware') {
+					var error = document.createElement('div');
+					error.className = 'bg-danger text-light mt-4';
+					error.textContent = 'Hardware mismatch. Cannot update parameters for different Hardware.';
+					upload.appendChild(error);
 				}else{
 					var error = document.createElement('div');
 					error.className = 'bg-danger text-light mt-4';

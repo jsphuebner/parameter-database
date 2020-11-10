@@ -17,7 +17,10 @@
 		<div class="row mt-4"></div>
         <div class="row">
             <div class="col">
-                <form class="bg-light" action="api.php" method="POST" enctype="multipart/form-data" id="parameter-upload"></form>
+                <h2>Upload Parameters</h2>
+                <form class="bg-light" action="api.php" method="POST" enctype="multipart/form-data" id="parameter-upload">
+                    <input type="file" name="data" accept=".json" onchange="this.form.submit()"/>
+                </form>
             </div>
         </div>
         <hr/>

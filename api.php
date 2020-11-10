@@ -404,7 +404,13 @@ else if(isset($_GET['questions']))
 
 	foreach ($sqlDrv->arrayQuery($sql) as $row)
 	{
-		$question = [$row['id'] => stripslashes($row['question']),'type' => $row['type'],'options' => $row['options']];
+		if($row['options'] == null) {
+			$options = $sqlDrv->arrayQuery("SELECT DISTINCT value FROM pd_metadata where metaitem=" .$row['id']);
+			$options = implode("','", $options[0]);
+		}else{
+			$options = $row['options'];
+		}
+		$question = [$row['id'] => stripslashes($row['question']),'type' => $row['type'],'options' => $options];
 
 		//Pre-Fill Answers
 		if(isset($_SESSION['filter'])) //Filter

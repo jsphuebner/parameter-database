@@ -8,8 +8,8 @@ create table pd_metaitems (
 );
 
 insert pd_metaitems (name) values ("Version"),("Timestamp"),("Hardware Variant"),("Userid");
-update pd_metaitems set question="Firmware Version?", type='select', options='Sine,FOC' where name='Version';
-update pd_metaitems set question="Hardware Variant?", type='select', options='Rev1,Rev2,Rev3,Tesla,TeslaM3,BluePill,Prius' where name='Hardware Variant';
+update pd_metaitems set question="Firmware Version?", type='select', options='Sine,FOC' where id=1;
+update pd_metaitems set question="Hardware Variant?", type='select' where id=3;
 insert pd_metaitems (name,question,type,options) values ("Motor Type","Which motor are you using?","text",null),
 ("Inverter Type","Which Inverter are you using?","select", "Nissan Leaf Gen1,Nissan Leaf Gen2, Nissan Leaf Gen3,Tesla SDU,Tesla LDU,Toyota Prius Gen2,Toyota Prius Gen3,Ford Ranger,Mitsubishi,BMW,Other,DIY Custom"),
 ("Battery Voltage", "What is your nominal battery voltage?","slider","0-1000"),

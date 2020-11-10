@@ -94,6 +94,14 @@ if(isset($_GET['id']))
 		}else{
 			echo json_encode([]);
 		}
+	}else if(isset($_GET['subscribers'])) {
+
+		if (!$user->data['is_registered']) {
+			die(json_encode(['error'=>'login']));
+		}
+		//TODO: Secure by $user->data['user_id']?
+		$subs = $sqlDrv->arrayQuery("SELECT id, token, stamp FROM pd_subscription WHERE id=$id");
+		echo json_encode($subs);
 	}
 	else if(isset($_GET['metadata']))
 	{
@@ -383,34 +391,6 @@ else if(isset($_GET['questions']))
 
 	echo json_encode($data);
 }
-else if(isset($_GET['mobile']))
-{
-	$QUERYLIMIT *= 3;
-
-	$rows = $sqlDrv->arrayQuery("SELECT 
-	        `d`.`id` AS `id`,
-	        `m`.`metaitem` AS `metaitem`,
-	        `m`.`value` AS `value`
-	    FROM
-	        (`pd_datasets` `d` JOIN `pd_metadata` `m`)
-	    WHERE
-	        (`d`.`metadata` = `m`.`setid`)  AND (`m`.`metaitem` IN (2 , 5, 6))  ORDER BY id ASC LIMIT $OFFSET, $QUERYLIMIT");
-	$lastId = 0;
-	$data = [];
-	
-	foreach ($rows as $row)
-	{
-		if ($lastId != $row['id'])
-		{
-			array_push($data, ['id' => intval($row['id'])]);
-		}
-		$data[sizeof($data)-1] += [$row['metaitem'] => $row['value']];
-
-		$lastId = $row['id'];
-	}
-	
-	echo json_encode($data);
-}
 else if(isset($_GET['my']))
 {
 	if (!$user->data['is_registered']) {
@@ -422,24 +402,50 @@ else if(isset($_GET['my']))
 	if(count($dataId) == 0) {
 		die(json_encode([]));
 	}
+	//print_r(dataIdArray($dataId)); //debug
 
-	$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC"); // LIMIT $OFFSET, " .($QUERYLIMIT * 10));
-	$lastId = 0;
-	$data = [];
+	if(isset($_GET['subscribers'])) {
+		$subs = $sqlDrv->arrayQuery("SELECT id, token, stamp FROM pd_subscription WHERE id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC");
+		echo json_encode($subs);
+	}else{
+		$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC"); // LIMIT $OFFSET, " .($QUERYLIMIT * 10));
+		$subs = $sqlDrv->mapQuery("SELECT id, COUNT(*) AS total FROM pd_subscription WHERE id IN (" .implode(",", dataIdArray($dataId)). ") GROUP BY id","id");
+		//print_r($subs); //debug
 
-	foreach ($rows as $row)
-	{
-		if ($lastId != $row['id'])
+		$lastId = 0;
+		$data = [];
+
+		foreach ($rows as $row)
 		{
-			array_push($data, ['id' => intval($row['id'])]);
+			if ($lastId != $row['id'])
+			{
+				array_push($data, ['id' => intval($row['id'])]);
+			}
+
+			$data[sizeof($data)-1] += [$row['name'] => $row['value']];
+
+			$lastId = $row['id'];
 		}
-		$data[sizeof($data)-1] += [$row['name'] => $row['value']];
 		
-		$lastId = $row['id'];
+		//TODO: Improve Efficiency? Add subscriber count as last
+		$lastId = 0;
+		$index = 0;
+		foreach ($rows as $row)
+		{
+			if ($lastId != $row['id'])
+			{
+				//print_r($data[$index]); //debug
+				if(isset($subs[$row['id']])) {
+					$data[$index] += ['Subscribers' => intval($subs[$row['id']])];
+				}else{
+					$data[$index] += ['Subscribers' => 0];
+				}
+				$index++;
+			}
+			$lastId = $row['id'];
+		}
+		echo json_encode($data);
 	}
-
-	echo json_encode($data);
-
 }else{
 
 	$sql = "SELECT id, name, value FROM pd_namedmetadata WHERE name != 'Userid' ";

@@ -7,24 +7,21 @@ document.addEventListener("DOMContentLoaded", function(event)
             var json = xhr.response;
             //console.log(json);
 
-			var table = document.getElementById('database-my-list');
+			var table = document.getElementById('database-my-subcsribers');
             var tbody = document.createElement('tbody');
 
             if(Object.keys(json).length == 0)
             {
                 var row = document.createElement('tr');
                 var col = document.createElement('td');
-                col.textContent = "No Results";
+                col.textContent = "No Subscribers";
                 row.appendChild(col);
                 tbody.appendChild(row);
             }
 
-            if(json['error'] == undefined)
-            {
-	    		for(var key in json)
-		        {
+            if(json['error'] == undefined) {
+	    		for(var key in json) {
 		            //console.log(key);
-
 	                if(key == 0) //create table header
 	                {
 	        			var row = document.createElement('thead');
@@ -33,46 +30,27 @@ document.addEventListener("DOMContentLoaded", function(event)
 	                	for(var header in json[key])
 				        {
 		        			//console.log(header);
-			        		var col = document.createElement('th');
-			        		if(header != 'id') {
-	    						col.textContent = header;
-	    					}
+		        			var col = document.createElement('th');
+    						col.textContent = header;
 							row.appendChild(col);
 				        }
 				        table.appendChild(row);
 	                }
 
 	                var row = document.createElement('tr');
-
-	        		var id = 0;
 	                for(var item in json[key])
 				    {
 				        //console.log(item);
-				        var col = document.createElement('td');
-				        if(item =='id') {
-				        	id = json[key][item];
-				        	var d = document.createElement('button');
-				        	d.className = 'btn btn-danger btn-sm';
-				        	d.setAttribute('title', 'Delete');
-				        	d.setAttribute('onclick', 'window.location.href="api.php?remove&id=' + id + '"');
-				        	d.textContent = 'X';
-				        	col.appendChild(d);
-				        }else if(item == 'Timestamp') {
-				        	var a = document.createElement('a');
-				        	a.setAttribute('href', 'view.html?id=' + id);
+			        	var col = document.createElement('td');
+			        	if(item =='token') {
+	        				var a = document.createElement('a');
+				        	a.setAttribute('href', 'api.php?token=' + json[key][item]);
 				        	a.textContent = json[key][item];
 				        	col.appendChild(a);
-				        }else if(item == 'Subscribers') {
-				        	var s = document.createElement('button');
-				        	s.className = 'btn btn-success btn-sm';
-				        	s.setAttribute('title', 'Subscribers');
-				        	s.setAttribute('onclick', 'window.location.href="subscribers.html?id=' + id + '"');
-				        	s.textContent = json[key][item];
-				        	col.appendChild(s);
-				        }else{
+	        			}else{
 	        				col.textContent = json[key][item];
-						}
-						row.appendChild(col);
+	        			}
+	        			row.appendChild(col);
 				    }
 				    tbody.appendChild(row);
 		        }
@@ -83,6 +61,6 @@ document.addEventListener("DOMContentLoaded", function(event)
             table.appendChild(tbody);
         }
     };
-    xhr.open('GET', 'api.php?&my=list', true);
+    xhr.open('GET', 'api.php?subscribers&' + window.location.search.substr(1), true);
     xhr.send();
 });

@@ -8,7 +8,7 @@ create table pd_metaitems (
 );
 
 insert pd_metaitems (name,question,type,options) values ("Version","Firmware Version?", "select", "SINE, FOC");
-insert pd_metaitems (name) values ("Timestamp")
+insert pd_metaitems (name) values ("Timestamp");
 insert pd_metaitems (name,question,type,options) values ("Version","Hardware Version?", "select");
 insert pd_metaitems (name) values ("Userid");
 insert pd_metaitems (name,question,type,options) values 

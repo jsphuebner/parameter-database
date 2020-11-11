@@ -14,7 +14,6 @@ $auth->acl($user->data);
 $user->setup();
 
 $request->enable_super_globals();
-$loginRedirect = 'You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=' . $_SERVER['REQUEST_URI'] . '">login to the forum</a>';
 
 require ('config.inc.php');
 
@@ -179,6 +178,362 @@ if(isset($_GET['id']))
 		echo json_encode($data);
 	}
 }
+else if(isset($_GET['user']))
+{
+	if ($user->data['is_registered']) {
+		echo json_encode(['id' => $user->data['user_id']]);
+	}else{
+		echo json_encode([]);
+	}
+}
+else if(isset($_POST['filter']))
+{
+	header('Content-Type: text/html');
+
+	$filter = [];
+	$md = $_POST['md'];
+
+	foreach ($md as $id => $value)
+	{
+		if($value != "" && $value != "0")
+			$filter += [$id => $value];
+	}
+	if (empty($filter)) {
+		unset($_SESSION['filter']);
+	}else{
+		$_SESSION['filter'] = $filter;
+	}
+	
+	header('Location: index.html');
+}
+else if(isset($_GET['filter']))
+{
+	if(isset($_SESSION['filter']))
+	{
+		echo json_encode($_SESSION['filter']);
+	}else{
+		echo json_encode([]);
+	}
+}
+else if(isset($_GET['pages']))
+{
+	$pages = $sqlDrv->scalarQuery("SELECT COUNT(id) FROM pd_datasets");
+	$data = ['pages' => ceil($pages/$QUERYLIMIT)-1];
+	$data += ['offset' => $QUERYLIMIT];
+
+	echo json_encode($data);
+}
+else if(isset($_POST['submit']) || isset($_POST['update']))
+{
+	if (!$user->data['is_registered']) {
+		die(json_encode(['error'=>'login']));
+	}
+
+	header('Content-Type: text/html');
+
+	if(isset($_POST['update'])) {
+
+		echo "Update ";
+
+		$filter = explode(':', $_POST['update']);
+
+		//....
+		
+	}else{
+
+		echo "Add New ";
+
+		$parameters = $_SESSION['data'];
+
+		$md = $_POST['md'];
+		$notes = $_POST['notes'];
+		
+		$sqlDrv->query("START TRANSACTION");
+		$setId = $sqlDrv->scalarQuery("SELECT MAX(setid) FROM pd_metadata") + 1;
+		$sql = "INSERT pd_metadata (setid, metaitem, value) VALUES ";
+
+		foreach ($md as $id => $value)
+		{
+			$sql.= "($setId, $id, '$value'),";
+		}
+		
+		$swVer = $parameters->version->enums[$parameters->version->value];
+		$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
+
+		$sql .= "($setId, 1, '$swVer'),";
+		$sql .= "($setId, 3, '$hwVer'),";
+		$sql .= "($setId, 2, NOW()),";
+		$sql .= "($setId, 4, ". $user->data['user_id']. ")";
+		$sqlDrv->query($sql);
+
+		$index = 0;
+		$catIndex = -1;
+		$lastCat = "";
+		foreach ($parameters as $name => $attributes)
+		{
+			if ($attributes->isparam && $attributes->category != "Testing")
+			{
+				if ($lastCat != $attributes->category)
+				{
+					$lastCat = $attributes->category;
+					$catIndex++;
+				}
+
+				$params[] = "('$attributes->category', $catIndex, $index, '$name', '$attributes->unit')";
+			}
+			$index++;
+		}
+		
+		$sql = "INSERT IGNORE pd_parameters (category, catindex, fwindex, name, unit) VALUES ".implode(",", $params);
+		$sqlDrv->query($sql);
+		$paramMap = $sqlDrv->mapQuery("SELECT id, name FROM pd_parameters", "name");
+		$sqlDrv->query("INSERT pd_datasets (metadata,notes) VALUES ($setId,'$notes')");
+		$dataId = $sqlDrv->scalarQuery("SELECT LAST_INSERT_ID()");
+
+		foreach ($parameters as $name => $attributes)
+		{
+			if ($attributes->isparam && $attributes->category != "Testing")
+			{
+				$paramId = $paramMap[$name];
+				$values[] = "($dataId, $paramId, $attributes->value)";
+			}
+		}
+		
+		$sql = "INSERT IGNORE pd_data (setid, parameter, value) VALUES ".implode(",", $values);
+		$sqlDrv->query($sql);
+
+		$sqlDrv->query("COMMIT");
+	}
+
+	unset($_SESSION['data']);
+
+	echo "Done. <a href='my.html'>My Parameters</a>";
+}
+else if(isset($_GET['submit']))
+{
+	if (!$user->data['is_registered']) {
+		die(json_encode(['error'=>'login']));
+	}
+
+	if(isset($_SESSION['data']))
+	{
+		/*
+		Update Logic:
+		- Check if TOKEN belongs to submited user? (self-subscribed to your own parameters)
+			> YES ask ADD new or UPDATE existing (we know which token belongs to which parameter id)
+			> NO submit NEW
+		- API show differences (like git compare)
+		*/
+		if(isset($_GET['token']))
+		{
+			$token = $_GET['token'];
+			$userId = $sqlDrv->scalarQuery("SELECT
+				m.value AS id
+			FROM pd_namedmetadata m
+				JOIN pd_subscription s
+			WHERE
+		        s.id = m.id AND
+		        m.name = 'UserId' AND
+				s.token = '$token'");
+
+			if ($userId == $user->data['user_id']) { //verify it belongs to user
+				//NEW parameters
+				$data = json_decode(json_encode($_SESSION['data']),true);
+
+				//Check make sure Version (Sine/FOC) + Hardware match
+				$answers = $sqlDrv->mapQuery("SELECT 
+					m.name AS name,
+					m.value AS value
+				FROM pd_namedmetadata m
+					JOIN pd_subscription s
+				WHERE
+					m.id = s.id AND
+					(m.name = 'Version' OR m.name = 'Hardware Variant') AND
+					s.token = '$token'", "name");
+				//print_r($answers); //debug
+
+				$swVer = $data['version']['enums'][$data['version']['value']];
+				$hwVer = $data['hwver']['enums'][$data['hwver']['value']];
+
+				if ($answers['Hardware Variant'] != $hwVer) {
+					die(json_encode(['error'=>'hardware']));
+				}
+
+				//EXISTING parameters
+				$rows = $sqlDrv->arrayQuery("SELECT 
+					d.setid AS setid,
+					p.category AS category,
+					p.name AS name,
+					p.unit AS unit,
+					d.value AS value
+				FROM pd_parameters p
+					JOIN pd_data d
+					JOIN pd_subscription s
+				WHERE
+					p.id = d.parameter AND
+					s.id = d.setid AND
+					s.token = '$token'");
+
+				$difference = [];
+				foreach ($rows as $row)
+				{
+					$diff = [];
+					if($data[$row['name']]['value'] != floatval($row['value'])) {
+						$diff += ['value' => ['old' => floatval($row['value']), 'new' => $data[$row['name']]['value']]];
+					}
+					if(sizeof($diff) > 0) {
+						$difference += [$row['name'] => $diff];
+					}
+				}
+				if(sizeof($difference) > 0) {
+					$data += ['DIFF' => $difference];
+				}
+
+				echo json_encode($data);
+			}else{
+				echo json_encode($_SESSION['data']);
+			}
+		}else{
+			echo json_encode($_SESSION['data']);
+		}
+	}else{
+		echo json_encode([]);
+	}
+}
+else if(isset($_FILES['data']) || isset($_POST['data']))
+{
+	header('Content-Type: text/html');
+
+	if (isset($_FILES['data'])) {
+		$data = file_get_contents($_FILES['data']['tmp_name']);
+	}else{
+		$data  = $_POST['data'];
+	}
+	$data = json_decode($data);
+
+	unset($_SESSION['data']);
+
+	//regulat json import support
+	if(!$data->version->enums) {
+		$data->version->enums = parseEnum($data->version->unit);
+		$data->hwver->enums = parseEnum($data->hwver->unit);
+	}
+
+	if (json_last_error() !== JSON_ERROR_NONE) {
+	    $_SESSION['data'] = json_decode(json_encode(['error'=>'json']));
+	}else if(!$data->version) {
+		$_SESSION['data'] = json_decode(json_encode(['error'=>'validation']));
+	}else{
+		$_SESSION['data'] = $data;
+	}
+
+	if (!$user->data['is_registered']) {
+		
+		$loginRedirect = '/parameters/add.html';
+		if(isset($_POST['token'])) {
+		 	$loginRedirect .= '?token='.$_POST['token'];
+		}
+		die('You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=' .$loginRedirect. '">login to the forum</a>');
+	}
+
+	if(isset($_POST['token'])) {
+	 	header('Location: add.html?token=' .$_POST['token']);
+	}else{
+	 	header('Location: add.html');
+	}
+}
+else if(isset($_GET['questions']))
+{
+	$sql = "SELECT id, name, question, type, options FROM pd_metaitems WHERE question IS NOT NULL";
+	$data = [];
+
+	foreach ($sqlDrv->arrayQuery($sql) as $row)
+	{
+		if($row['type'] == 'select' && $row['options'] == null) {
+			$options = $sqlDrv->arrayQuery("SELECT DISTINCT value as id FROM pd_metadata where metaitem=" .$row['id']);
+			$options = implode(",", dataIdArray($options));
+		}else{
+			$options = $row['options'];
+		}
+		$question = [$row['id'] => stripslashes($row['question']),'type' => $row['type'],'options' => $options];
+
+		//Pre-Fill Answers
+		if(isset($_SESSION['filter'])) //Filter
+		{
+			$question += ['value' => $_SESSION['filter'][$row['id']]];
+		}
+		else if(isset($_GET['token'])) //Existing Parameter
+		{
+			$token = $_GET['token'];
+			$answers = $sqlDrv->mapQuery("SELECT 
+					m.metaitem AS id,
+					m.value AS value
+				FROM pd_metadata m
+					JOIN pd_subscription s
+				WHERE
+					m.setid = s.id AND
+					s.token = '$token'", "id");
+			//print_r($answers); //debug
+
+			$question += ['value' => $answers[$row['id']]];
+		}else{
+			$question += ['value' => null];
+		}
+		array_push($data,$question);
+	}
+
+	echo json_encode($data);
+}
+else if(isset($_GET['my']))
+{
+	if (!$user->data['is_registered']) {
+		die(json_encode(['error'=>'login']));
+	}
+
+	$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_namedmetadata WHERE name='Userid' AND value=" .$user->data['user_id']. " LIMIT $OFFSET, $QUERYLIMIT");
+	
+	if(count($dataId) == 0) {
+		die(json_encode([]));
+	}
+	//print_r(dataIdArray($dataId)); //debug
+
+	if(isset($_GET['subscribers'])) {
+		$subs = $sqlDrv->arrayQuery("SELECT id, token, stamp FROM pd_subscription WHERE id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC");
+		echo json_encode($subs);
+	}else{
+		$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC"); // LIMIT $OFFSET, " .($QUERYLIMIT * 10));
+		$subs = $sqlDrv->mapQuery("SELECT id, COUNT(*) AS total FROM pd_subscription WHERE id IN (" .implode(",", dataIdArray($dataId)). ") GROUP BY id","id");
+		//print_r($subs); //debug
+
+		$lastId = 0;
+		$data = [];
+
+		foreach ($rows as $row)
+		{
+			if ($lastId != $row['id'])
+			{
+				array_push($data, ['id' => intval($row['id'])]);
+			}
+
+			$data[sizeof($data)-1] += [$row['name'] => $row['value']];
+
+			$lastId = $row['id'];
+		}
+		
+		//Add subscriber count as last
+		$index = 0;
+		foreach ($data as $row)
+		{
+			if(isset($subs[$row['id']])) {
+				$data[$index] += ['Subscribers' => intval($subs[$row['id']])];
+			}else{
+				$data[$index] += ['Subscribers' => 0];
+			}
+			$index++;
+		}
+		echo json_encode($data);
+	}
+}
 else if(isset($_GET['token']))
 {
 	header("Access-Control-Allow-Origin: *");
@@ -230,236 +585,6 @@ else if(isset($_GET['token']))
 		$data += [$row['name'] => $row['value']];
 	}
 	echo json_encode($data, JSON_PRETTY_PRINT);
-}
-else if(isset($_GET['user']))
-{
-	if ($user->data['is_registered']) {
-		echo json_encode(['id' => $user->data['user_id']]);
-	}else{
-		echo json_encode([]);
-	}
-}
-else if(isset($_POST['filter']))
-{
-	header('Content-Type: text/html');
-
-	$filter = [];
-	$md = $_POST['md'];
-
-	foreach ($md as $id => $value)
-	{
-		if($value != "" && $value != "0")
-			$filter += [$id => $value];
-	}
-	if (empty($filter)) {
-		unset($_SESSION['filter']);
-	}else{
-		$_SESSION['filter'] = $filter;
-	}
-	
-	header('Location: index.html');
-}
-else if(isset($_GET['filter']))
-{
-	if(isset($_SESSION['filter']))
-	{
-		echo json_encode($_SESSION['filter']);
-	}else{
-		echo json_encode([]);
-	}
-}
-else if(isset($_GET['pages']))
-{
-	$pages = $sqlDrv->scalarQuery("SELECT COUNT(id) FROM pd_datasets");
-	$data = ['pages' => ceil($pages/$QUERYLIMIT)-1];
-	$data += ['offset' => $QUERYLIMIT];
-
-	echo json_encode($data);
-}
-else if(isset($_POST['submit']))
-{
-	if (!$user->data['is_registered']) {
-		die(json_encode(['error'=>'login']));
-	}
-
-	header('Content-Type: text/html');
-
-	$request->enable_super_globals();
-	$data = json_encode($_SESSION['data']);
-	$parameters = json_decode($data);
-
-	$md = $_POST['md'];
-	$notes = $_POST['notes'];
-	
-	$sqlDrv->query("START TRANSACTION");
-	$setId = $sqlDrv->scalarQuery("SELECT MAX(setid) FROM pd_metadata") + 1;
-	$sql = "INSERT pd_metadata (setid, metaitem, value) VALUES ";
-
-	foreach ($md as $id => $value)
-	{
-		$sql.= "($setId, $id, '$value'),";
-	}
-	//regulat json import support
-	if(!is_array($parameters->version->enums)) {
-		$parameters->version->enums = parseEnum($parameters->version->unit);
-		$parameters->hwver->enums = parseEnum($parameters->hwver->unit);
-	}
-	
-	$swVer = $parameters->version->enums[$parameters->version->value];
-	$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
-
-	$sql .= "($setId, 1, '$swVer'),";
-	$sql .= "($setId, 3, '$hwVer'),";
-	$sql .= "($setId, 2, NOW()),";
-	$sql .= "($setId, 4, ". $user->data['user_id']. ")";
-	$sqlDrv->query($sql);
-
-	$index = 0;
-	$catIndex = -1;
-	$lastCat = "";
-	foreach ($parameters as $name => $attributes)
-	{
-		if ($attributes->isparam && $attributes->category != "Testing")
-		{
-			if ($lastCat != $attributes->category)
-			{
-				$lastCat = $attributes->category;
-				$catIndex++;
-			}
-
-			$params[] = "('$attributes->category', $catIndex, $index, '$name', '$attributes->unit')";
-		}
-		$index++;
-	}
-	
-	$sql = "INSERT IGNORE pd_parameters (category, catindex, fwindex, name, unit) VALUES ".implode(",", $params);
-	$sqlDrv->query($sql);
-	$paramMap = $sqlDrv->mapQuery("SELECT id, name FROM pd_parameters", "name");
-	$sqlDrv->query("INSERT pd_datasets (metadata,notes) VALUES ($setId,'$notes')");
-	$dataId = $sqlDrv->scalarQuery("SELECT LAST_INSERT_ID()");
-
-	foreach ($parameters as $name => $attributes)
-	{
-		if ($attributes->isparam && $attributes->category != "Testing")
-		{
-			$paramId = $paramMap[$name];
-			$values[] = "($dataId, $paramId, $attributes->value)";
-		}
-	}
-	
-	$sql = "INSERT IGNORE pd_data (setid, parameter, value) VALUES ".implode(",", $values);
-	$sqlDrv->query($sql);
-
-	$sqlDrv->query("COMMIT");
-
-	unset($_SESSION['data']);
-
-	echo "Done. <a href='my.html'>My Parameters</a>";
-}
-else if(isset($_GET['submit']))
-{
-	if(isset($_SESSION['data']))
-	{
-		echo json_encode($_SESSION['data']);
-	}else{
-		echo json_encode([]);
-	}
-}
-else if(isset($_FILES['data']) || isset($_POST['data']))
-{
-	header('Content-Type: text/html');
-
-	if (isset($_FILES['data'])) {
-		$data = file_get_contents($_FILES['data']['tmp_name']);
-	}else{
-		$data  = $_POST['data'];
-	}
-	$validation = json_decode($data,true);
-
-	unset($_SESSION['data']);
-
-	if (json_last_error() !== JSON_ERROR_NONE) {
-	    $_SESSION['data'] = json_decode(json_encode(['error'=>'json']));
-	}else if(!is_array(array_values($validation)[0])) {
-		$_SESSION['data'] = json_decode(json_encode(['error'=>'validation']));
-	}else{
-		$_SESSION['data'] = json_decode($data);
-	}
-
-	if (!$user->data['is_registered']) {
-		$loginRedirect = str_replace('api.php', 'add.html', $loginRedirect);
-		die($loginRedirect);
-	}
-
-	header('Location: add.html');
-}
-else if(isset($_GET['questions']))
-{
-	$sql = "SELECT id, name, question, type, options FROM pd_metaitems WHERE question IS NOT NULL";
-	$data = [];
-
-	foreach ($sqlDrv->arrayQuery($sql) as $row)
-	{
-		array_push($data,[$row['id'] => stripslashes($row['question']),'type' => $row['type'],'options' => $row['options']]);
-	}
-
-	echo json_encode($data);
-}
-else if(isset($_GET['my']))
-{
-	if (!$user->data['is_registered']) {
-		die(json_encode(['error'=>'login']));
-	}
-
-	$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_namedmetadata WHERE name='Userid' AND value=" .$user->data['user_id']. " LIMIT $OFFSET, $QUERYLIMIT");
-	
-	if(count($dataId) == 0) {
-		die(json_encode([]));
-	}
-	//print_r(dataIdArray($dataId)); //debug
-
-	if(isset($_GET['subscribers'])) {
-		$subs = $sqlDrv->arrayQuery("SELECT id, token, stamp FROM pd_subscription WHERE id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC");
-		echo json_encode($subs);
-	}else{
-		$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC"); // LIMIT $OFFSET, " .($QUERYLIMIT * 10));
-		$subs = $sqlDrv->mapQuery("SELECT id, COUNT(*) AS total FROM pd_subscription WHERE id IN (" .implode(",", dataIdArray($dataId)). ") GROUP BY id","id");
-		//print_r($subs); //debug
-
-		$lastId = 0;
-		$data = [];
-
-		foreach ($rows as $row)
-		{
-			if ($lastId != $row['id'])
-			{
-				array_push($data, ['id' => intval($row['id'])]);
-			}
-
-			$data[sizeof($data)-1] += [$row['name'] => $row['value']];
-
-			$lastId = $row['id'];
-		}
-		
-		//TODO: Improve Efficiency? Add subscriber count as last
-		$lastId = 0;
-		$index = 0;
-		foreach ($rows as $row)
-		{
-			if ($lastId != $row['id'])
-			{
-				//print_r($data[$index]); //debug
-				if(isset($subs[$row['id']])) {
-					$data[$index] += ['Subscribers' => intval($subs[$row['id']])];
-				}else{
-					$data[$index] += ['Subscribers' => 0];
-				}
-				$index++;
-			}
-			$lastId = $row['id'];
-		}
-		echo json_encode($data);
-	}
 }else{
 
 	$sql = "SELECT id, name, value FROM pd_namedmetadata WHERE name != 'Userid' ";

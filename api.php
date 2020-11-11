@@ -232,9 +232,7 @@ else if(isset($_POST['submit']))
 
 	header('Content-Type: text/html');
 
-	$request->enable_super_globals();
-	$data = json_encode($_SESSION['data']);
-	$parameters = json_decode($data);
+	$parameters = $_SESSION['data'];
 
 	$md = $_POST['md'];
 	$notes = $_POST['notes'];
@@ -399,22 +397,22 @@ else if(isset($_FILES['data']) || isset($_POST['data']))
 	}else{
 		$data  = $_POST['data'];
 	}
-	$data = json_decode($data, true);
+	$data = json_decode($data);
 
 	unset($_SESSION['data']);
 
 	//regulat json import support
-	if(!is_array($data['version']['enums'])) {
-		$data['version']['enums'] = parseEnum($data['version']['unit']);
-		$data['hwver']['enums'] = parseEnum($data['hwver']['unit']);
+	if(!$data->version->enums) {
+		$data->version->enums = parseEnum($data->version->unit);
+		$data->hwver->enums = parseEnum($data->hwver->unit);
 	}
 
 	if (json_last_error() !== JSON_ERROR_NONE) {
 	    $_SESSION['data'] = json_decode(json_encode(['error'=>'json']));
-	}else if(!is_array(array_values($data)[0])) {
+	}else if(!$data->version) {
 		$_SESSION['data'] = json_decode(json_encode(['error'=>'validation']));
 	}else{
-		$_SESSION['data'] = json_decode(json_encode($data));
+		$_SESSION['data'] = $data;
 	}
 
 	if (!$user->data['is_registered']) {
@@ -436,8 +434,8 @@ else if(isset($_GET['questions']))
 	foreach ($sqlDrv->arrayQuery($sql) as $row)
 	{
 		if($row['type'] == 'select' && $row['options'] == null) {
-			$options = $sqlDrv->arrayQuery("SELECT DISTINCT value FROM pd_metadata where metaitem=" .$row['id']);
-			$options = implode("','", $options[0]);
+			$options = $sqlDrv->arrayQuery("SELECT DISTINCT value as id FROM pd_metadata where metaitem=" .$row['id']);
+			$options = implode("','", dataIdArray($options));
 		}else{
 			$options = $row['options'];
 		}

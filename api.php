@@ -14,7 +14,6 @@ $auth->acl($user->data);
 $user->setup();
 
 $request->enable_super_globals();
-$loginRedirect = 'You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=' . $_SERVER['REQUEST_URI'] . '">login to the forum</a>';
 
 require ('config.inc.php');
 
@@ -224,7 +223,7 @@ else if(isset($_GET['pages']))
 
 	echo json_encode($data);
 }
-else if(isset($_POST['submit']))
+else if(isset($_POST['submit']) || isset($_POST['update']))
 {
 	if (!$user->data['is_registered']) {
 		die(json_encode(['error'=>'login']));
@@ -232,66 +231,79 @@ else if(isset($_POST['submit']))
 
 	header('Content-Type: text/html');
 
-	$parameters = $_SESSION['data'];
+	if(isset($_POST['update'])) {
 
-	$md = $_POST['md'];
-	$notes = $_POST['notes'];
-	
-	$sqlDrv->query("START TRANSACTION");
-	$setId = $sqlDrv->scalarQuery("SELECT MAX(setid) FROM pd_metadata") + 1;
-	$sql = "INSERT pd_metadata (setid, metaitem, value) VALUES ";
+		echo "Update ";
 
-	foreach ($md as $id => $value)
-	{
-		$sql.= "($setId, $id, '$value'),";
-	}
-	
-	$swVer = $parameters->version->enums[$parameters->version->value];
-	$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
+		$filter = explode(':', $_POST['update']);
 
-	$sql .= "($setId, 1, '$swVer'),";
-	$sql .= "($setId, 3, '$hwVer'),";
-	$sql .= "($setId, 2, NOW()),";
-	$sql .= "($setId, 4, ". $user->data['user_id']. ")";
-	$sqlDrv->query($sql);
+		//....
+		
+	}else{
 
-	$index = 0;
-	$catIndex = -1;
-	$lastCat = "";
-	foreach ($parameters as $name => $attributes)
-	{
-		if ($attributes->isparam && $attributes->category != "Testing")
+		echo "Add New ";
+
+		$parameters = $_SESSION['data'];
+
+		$md = $_POST['md'];
+		$notes = $_POST['notes'];
+		
+		$sqlDrv->query("START TRANSACTION");
+		$setId = $sqlDrv->scalarQuery("SELECT MAX(setid) FROM pd_metadata") + 1;
+		$sql = "INSERT pd_metadata (setid, metaitem, value) VALUES ";
+
+		foreach ($md as $id => $value)
 		{
-			if ($lastCat != $attributes->category)
+			$sql.= "($setId, $id, '$value'),";
+		}
+		
+		$swVer = $parameters->version->enums[$parameters->version->value];
+		$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
+
+		$sql .= "($setId, 1, '$swVer'),";
+		$sql .= "($setId, 3, '$hwVer'),";
+		$sql .= "($setId, 2, NOW()),";
+		$sql .= "($setId, 4, ". $user->data['user_id']. ")";
+		$sqlDrv->query($sql);
+
+		$index = 0;
+		$catIndex = -1;
+		$lastCat = "";
+		foreach ($parameters as $name => $attributes)
+		{
+			if ($attributes->isparam && $attributes->category != "Testing")
 			{
-				$lastCat = $attributes->category;
-				$catIndex++;
+				if ($lastCat != $attributes->category)
+				{
+					$lastCat = $attributes->category;
+					$catIndex++;
+				}
+
+				$params[] = "('$attributes->category', $catIndex, $index, '$name', '$attributes->unit')";
 			}
-
-			$params[] = "('$attributes->category', $catIndex, $index, '$name', '$attributes->unit')";
+			$index++;
 		}
-		$index++;
-	}
-	
-	$sql = "INSERT IGNORE pd_parameters (category, catindex, fwindex, name, unit) VALUES ".implode(",", $params);
-	$sqlDrv->query($sql);
-	$paramMap = $sqlDrv->mapQuery("SELECT id, name FROM pd_parameters", "name");
-	$sqlDrv->query("INSERT pd_datasets (metadata,notes) VALUES ($setId,'$notes')");
-	$dataId = $sqlDrv->scalarQuery("SELECT LAST_INSERT_ID()");
+		
+		$sql = "INSERT IGNORE pd_parameters (category, catindex, fwindex, name, unit) VALUES ".implode(",", $params);
+		$sqlDrv->query($sql);
+		$paramMap = $sqlDrv->mapQuery("SELECT id, name FROM pd_parameters", "name");
+		$sqlDrv->query("INSERT pd_datasets (metadata,notes) VALUES ($setId,'$notes')");
+		$dataId = $sqlDrv->scalarQuery("SELECT LAST_INSERT_ID()");
 
-	foreach ($parameters as $name => $attributes)
-	{
-		if ($attributes->isparam && $attributes->category != "Testing")
+		foreach ($parameters as $name => $attributes)
 		{
-			$paramId = $paramMap[$name];
-			$values[] = "($dataId, $paramId, $attributes->value)";
+			if ($attributes->isparam && $attributes->category != "Testing")
+			{
+				$paramId = $paramMap[$name];
+				$values[] = "($dataId, $paramId, $attributes->value)";
+			}
 		}
-	}
-	
-	$sql = "INSERT IGNORE pd_data (setid, parameter, value) VALUES ".implode(",", $values);
-	$sqlDrv->query($sql);
+		
+		$sql = "INSERT IGNORE pd_data (setid, parameter, value) VALUES ".implode(",", $values);
+		$sqlDrv->query($sql);
 
-	$sqlDrv->query("COMMIT");
+		$sqlDrv->query("COMMIT");
+	}
 
 	unset($_SESSION['data']);
 
@@ -416,8 +428,12 @@ else if(isset($_FILES['data']) || isset($_POST['data']))
 	}
 
 	if (!$user->data['is_registered']) {
-		$loginRedirect = str_replace('api.php', 'add.html', $loginRedirect);
-		die($loginRedirect);
+		
+		$loginRedirect = '/parameters/add.html';
+		if(isset($_POST['token'])) {
+		 	$loginRedirect .= '?token='.$_POST['token'];
+		}
+		die('You are not logged in, please <a href="https://openinverter.org/forum/ucp.php?mode=login&redirect=' .$loginRedirect. '">login to the forum</a>');
 	}
 
 	if(isset($_POST['token'])) {
@@ -435,7 +451,7 @@ else if(isset($_GET['questions']))
 	{
 		if($row['type'] == 'select' && $row['options'] == null) {
 			$options = $sqlDrv->arrayQuery("SELECT DISTINCT value as id FROM pd_metadata where metaitem=" .$row['id']);
-			$options = implode("','", dataIdArray($options));
+			$options = implode(",", dataIdArray($options));
 		}else{
 			$options = $row['options'];
 		}

@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 				                        continue;
 			                    	}
 			                    }
-			                   var col = document.createElement('th');
+			                   	var col = document.createElement('th');
 		                        col.textContent = colspan[i];
 		                        row.appendChild(col);
 		                    }
@@ -100,17 +100,17 @@ document.addEventListener("DOMContentLoaded", function(event)
 								var col = document.createElement('td');
 
 		                    	if(json['DIFF'][key] != undefined) {
-		                    		if (json['DIFF'][key].value.old != undefined)
-		                    		{
+		                    		if (json['DIFF'][key]['value']['old'] != undefined) {
 		                    			row.className = 'bg-warning';
-		                    		}else if (json['DIFF'][key].value.delete != undefined) {
+		                    		}else if (json['DIFF'][key]['value']['add'] != undefined) {
+		                    			row.className = 'bg-success';
+		                    		}else if (json['DIFF'][key]['value']['delete'] != undefined) {
 		                    			row.className = 'bg-danger';
 		                    		}
-		                    		row.className = 'bg-warning';
 		                    		var checkbox = document.createElement('input');
 			                        checkbox.className = 'form-check-input';
 			                        checkbox.setAttribute('type', 'checkbox');
-			                        checkbox.setAttribute('id', 'u' + key);
+			                        checkbox.setAttribute('id', key);
 			                        checkbox.checked = true;
 			                        col.appendChild(checkbox);
 		                    	}
@@ -124,22 +124,31 @@ document.addEventListener("DOMContentLoaded", function(event)
 		                    colspan = Object.keys(json[key]);
 		                    for (i = 1; i < colspan.length-2; i++)
 		                    {
-		                    	if(json['DIFF'] != undefined) {
-				                    if (i == 1) {
-										var col = document.createElement('td');
-										if(json['DIFF'][key] != undefined){
+		                    	if(json['DIFF'] != undefined)
+		                    	{
+				                    if(i == 1) {
+				                    	if (json['DIFF'][key] != undefined)
+				                    	{
+											var col = document.createElement('td');
+											//col.className = 'bg-danger';
 											col.textContent = json['DIFF'][key].value.old;
+											row.appendChild(col);
+
+											var col = document.createElement('td');
+											//col.className = 'bg-success';
+											col.textContent = json['DIFF'][key].value.new;
+											row.appendChild(col);
+											continue;
+										}else{
+											var col = document.createElement('td');
+			                        		col.textContent = json[key][colspan[i]];
+			                        		row.appendChild(col);
 										}
-				                        row.appendChild(col);
 				                    }
-				                    var col = document.createElement('td');
-				                    col.textContent = json[key][colspan[i]];
-				                    row.appendChild(col);
-		                    	}else{
-			                        var col = document.createElement('td');
-			                        col.textContent = json[key][colspan[i]];
-			                        row.appendChild(col);
-			                    }
+				                }
+		                        var col = document.createElement('td');
+		                        col.textContent = json[key][colspan[i]];
+		                        row.appendChild(col);
 		                    }
 
 		                    var col = document.createElement('td');
@@ -155,8 +164,8 @@ document.addEventListener("DOMContentLoaded", function(event)
 				    qxhr.responseType = 'json';
 				    qxhr.onload = function() {
 				        if (qxhr.status == 200) {
-				            var json = qxhr.response;
-				            console.log(json);
+				            var qjson = qxhr.response;
+				            console.log(qjson);
 
 							var form = document.getElementById('parameter-questions');
 
@@ -164,7 +173,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 					    	h.textContent = 'Questions';
 					    	form.appendChild(h);
 
-							buildQuestionForm(json,form, [], [1,3]);
+							buildQuestionForm(qjson,form, [], [1,3]);
 
 					        var fieldset = document.createElement('div');
 				            fieldset.className = 'form-group';
@@ -177,12 +186,34 @@ document.addEventListener("DOMContentLoaded", function(event)
 				    		fieldset.appendChild(textarea);
 				    		form.appendChild(fieldset);
 
-				    		var submit = document.createElement('button');
-				            submit.setAttribute('type', 'submit');
-				            submit.setAttribute('name', 'submit');
-							submit.className = 'btn btn-primary';
-							submit.textContent = 'Submit Query';
-							form.appendChild(submit);
+				    		var table = document.createElement('table');
+							var tr = document.createElement('tr');
+
+				    		if(json['DIFF'] != undefined) {
+				    			var td = document.createElement('td');
+				    			var submitUpdate = document.createElement('button');
+					            submitUpdate.setAttribute('type', 'submit');
+					            submitUpdate.setAttribute('name', 'update');
+								submitUpdate.className = 'btn btn-warning mr-3';
+								submitUpdate.textContent = 'Update Parameters';
+								submitUpdate.onclick = function() {
+				                    this.setAttribute('value', cherryPick());
+								}
+								td.appendChild(submitUpdate);
+								tr.appendChild(td);
+				    		}
+
+				    		var td = document.createElement('td');
+				    		var submitNew = document.createElement('button');
+				            submitNew.setAttribute('type', 'submit');
+				            submitNew.setAttribute('name', 'submit');
+							submitNew.className = 'btn btn-secondary mr-3';
+							submitNew.textContent = 'Add New Parameters';
+							td.appendChild(submitNew);
+							tr.appendChild(td);
+
+							table.appendChild(tr);
+				    		form.appendChild(table);
 				        }
 				    };
 				    qxhr.open('GET', 'api.php?questions&' + window.location.search.substr(1), true);
@@ -208,3 +239,16 @@ document.addEventListener("DOMContentLoaded", function(event)
     xhr.open('GET', 'api.php?submit&' + window.location.search.substr(1), true);
     xhr.send();
 });
+
+function cherryPick()
+{
+	var filter = '';
+
+	var inputs = document.querySelectorAll("input[type='checkbox']");
+	for(var i = 0; i < inputs.length; i++) {
+		if(inputs[i].checked == true && inputs[i].id.charAt(0) != '_') {
+			filter += ':' + inputs[i].id;
+		}
+	}
+	return filter.substring(1);
+}

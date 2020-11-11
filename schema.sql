@@ -7,8 +7,12 @@ create table pd_metaitems (
     PRIMARY KEY (`id`)
 );
 
-insert pd_metaitems (name) values ("Version"),("Timestamp"),("Hardware Variant"),("Userid");
-insert pd_metaitems (name,question,type,options) values ("Motor Type","Which motor are you using?","text",null),
+insert pd_metaitems (name,question,type,options) values ("Version","Firmware Version?", "select", "SINE, FOC");
+insert pd_metaitems (name) values ("Timestamp")
+insert pd_metaitems (name,question,type,options) values ("Version","Hardware Version?", "select");
+insert pd_metaitems (name) values ("Userid");
+insert pd_metaitems (name,question,type,options) values 
+("Motor Type","Which motor are you using?","text",null),
 ("Inverter Type","Which Inverter are you using?","select", "Nissan Leaf Gen1,Nissan Leaf Gen2, Nissan Leaf Gen3,Tesla SDU,Tesla LDU,Toyota Prius Gen2,Toyota Prius Gen3,Ford Ranger,Mitsubishi,BMW,Other,DIY Custom"),
 ("Battery Voltage", "What is your nominal battery voltage?","slider","0-1000"),
 ("Vehicle Weight", "What is the weight of your vehicle in kg?","slider","0-10000"),

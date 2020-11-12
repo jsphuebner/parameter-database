@@ -15,25 +15,33 @@
 <body>
 	<div class="container-fluid">
 		<div class="row mt-4"></div>
-        <div class="row" style="display:none">
+        <div class="row">
+            <div class="col">
+                <div id="parameter-error"></div>
+            </div>
+        </div>
+        <div class="row hidden" id="parameter-upload">
             <div class="col">
                 <h2>Upload Parameters</h2>
-                <form class="bg-light mb-3" action="api.php" method="POST" enctype="multipart/form-data" id="parameter-upload">
+                <form class="bg-light mb-3" action="api.php" method="POST" enctype="multipart/form-data">
                     <input type="file" name="data" accept=".json" onchange="this.form.submit()"/>
                 </form>
             </div>
         </div>
-        <hr/>
+        <div class="row hidden" id="parameter-addnew-update">
+            <div class="col">
+                <h2>Create new or replace existing?</h2>
+                <select class="form-control mb-3" id="compareid" name="compareid" onChange="buildDocument(this.value)">
+                    <option value="0">&lt;Create New&gt;</option>
+                </select>
+                <hr/>
+            </div>
+        </div>
         <div class="row">
             <div class="col">
                 <form class="bg-light" action="api.php" method="POST" id="parameter-questions"></form>
             </div>
         </div>
-        <br>
-        Create new or replace existing?<br>
-	    <select id="compareid" name="compareid" onChange="buildDocument(this.value)">
-		    <option value="0">&lt;Create New&gt;</option>
-	    </select>
         <hr/>
         <div class="row">
             <div class="col">

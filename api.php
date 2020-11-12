@@ -534,7 +534,7 @@ else if(isset($_GET['my']))
 		$subs = $sqlDrv->arrayQuery("SELECT id, token, stamp FROM pd_subscription WHERE id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC");
 		echo json_encode($subs);
 	}else{
-		$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC"); // LIMIT $OFFSET, " .($QUERYLIMIT * 10));
+		$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id,question ASC"); // LIMIT $OFFSET, " .($QUERYLIMIT * 10));
 		$subs = $sqlDrv->mapQuery("SELECT id, COUNT(*) AS total FROM pd_subscription WHERE id IN (" .implode(",", dataIdArray($dataId)). ") GROUP BY id","id");
 		//print_r($subs); //debug
 
@@ -650,7 +650,7 @@ else if(isset($_GET['token']))
 		}
 	}
 	
-	$sql .= "ORDER BY id ASC LIMIT $OFFSET, ". ($QUERYLIMIT * 10);
+	$sql .= "ORDER BY id,question ASC LIMIT $OFFSET, ". ($QUERYLIMIT * 10);
 	//echo $sql;
 
 	$rows = $sqlDrv->arrayQuery($sql);

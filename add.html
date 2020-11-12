@@ -23,15 +23,17 @@
                 </form>
             </div>
         </div>
-        <select id="compareid" name="compareid" onChange="buildDocument(this.value)">
-        <option value="0">&lt;Create New&gt;</option>
-        </select>
         <hr/>
         <div class="row">
             <div class="col">
                 <form class="bg-light" action="api.php" method="POST" id="parameter-questions"></form>
             </div>
         </div>
+        <br>
+        Create new or replace existing?<br>
+	    <select id="compareid" name="compareid" onChange="buildDocument(this.value)">
+		    <option value="0">&lt;Create New&gt;</option>
+	    </select>
         <hr/>
         <div class="row">
             <div class="col">

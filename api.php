@@ -231,7 +231,7 @@ else if(isset($_POST['update'])) // update existing parameters
 
 	header('Content-Type: text/html');
 
-	if(isset($_POST['token'])) {
+	if(!empty($_POST['token'])) {
 		$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_subscription WHERE token='" . $_POST['token']. "'");
 		if(count($dataId) == 0) {
 			die('Parameter ID Not Found');
@@ -259,7 +259,7 @@ else if(isset($_POST['update'])) // update existing parameters
 		foreach ($rows as $row)
 		{
 			$sqlDrv->query("UPDATE pd_data SET value=" .$parameters->{$row}->value. " WHERE setid=$id AND parameter=(SELECT id from pd_parameters WHERE name='$row')");
-			print($row. " > ". $parameters->{$row}->value. " ($id)"); //debug
+			//print($row. " > ". $parameters->{$row}->value. " ($id)"); //debug
 		}
 		unset($_SESSION['data']);
 

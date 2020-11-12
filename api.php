@@ -359,7 +359,7 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 		*/
 		
 		//NEW parameters
-		$data = $_SESSION['data'];
+		$data = clone($_SESSION['data']);
 
 		//EXISTING parameters
 		if(isset($_GET['compareid']) && $_GET['compareid'] > 0)
@@ -437,8 +437,8 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 		
 		$data->EXISTING = $existingsets;
 
-		if (isset($rows) && isset($answers)) { //verify it belongs to user
-			
+		if (isset($rows) && isset($answers)) {
+
 			$swVer = explode("-", $data->version->enums[$data->version->value])[1];
 			$dbSwVariant = explode("-", $answers['Version'])[1];
 
@@ -453,6 +453,10 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 			foreach ($rows as $row)
 			{
 				if($data->{$row['name']}->value != floatval($row['value'])) {
+					//print_r($row['name'] . " " .floatval($row['value']). ">". $data->{$row['name']}->value); //debug
+					$data->DIFF = (object)[];
+					$data->DIFF->{$row['name']} = (object)[];
+					$data->DIFF->{$row['name']}->value = (object)[];
 					$data->DIFF->{$row['name']}->value->old = floatval($row['value']);
 					$data->DIFF->{$row['name']}->value->new = $data->{$row['name']}->value;
 				}

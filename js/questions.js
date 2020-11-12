@@ -131,7 +131,7 @@ function buildQuestionForm(json,form,filter,exclude)
                         input.setAttribute('value', json[index]['value']);
                     }
                     fieldset.appendChild(input);
-                }else{
+                }else if(json[index]['type'] === 'text'){
                     var input = document.createElement('input');
                     input.className = 'form-control mb-3';
                     input.setAttribute('type', json[index]['type']);

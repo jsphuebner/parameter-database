@@ -231,27 +231,23 @@ else if(isset($_POST['update'])) // update existing parameters
 
 	header('Content-Type: text/html');
 
-	if(isset($_POST['token'])) {
-		$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_subscription WHERE token='" . $_POST['token']. "'");
-		if(count($dataId) == 0) {
-			die('Parameter ID Not Found');
-		}
-		$id = $dataId[0]['id'];
-	}else if(isset($_POST['id'])) {
+	if(isset($_POST['id'])) {
 		$id = $_POST['id'];
 	}
 
 	$userId = $sqlDrv->scalarQuery("SELECT value FROM pd_metadata,pd_datasets d WHERE setid=d.metadata AND d.id=$id AND metaitem=4");
 		
-	if ($userId == $user->data['user_id']) { // verify it belongs to user
-
+	if ($userId == $user->data['user_id']) // verify it belongs to user
+	{
 		$parameters = $_SESSION['data'];
+		$notes = $_POST['notes'];
 
 		$swVer = $parameters->version->enums[$parameters->version->value];
 		
 		//MetaData Updates (no $hwVer it should stay the same)
 		$sqlDrv->query("UPDATE pd_metadata SET value='$swVer' WHERE setid=$id AND metaitem=1");
 		$sqlDrv->query("UPDATE pd_metadata SET value=NOW() WHERE setid=$id AND metaitem=2");
+		$sqlDrv->query("UPDATE pd_datasets SET notes='$notes' WHERE id=$id");
 
 		//Parameters Updates
 		$rows = explode(':', $_POST['update']);
@@ -349,6 +345,12 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 
 	if(isset($_SESSION['data']))
 	{
+		$hwVer = $_SESSION['data']->hwver->enums[$_SESSION['data']->hwver->value];
+		$userid = $user->data['user_id'];
+		$matchingIds = $sqlDrv->arrayQuery("SELECT m1.id FROM pd_namedmetadata m1, pd_namedmetadata m2 WHERE m1.id=m2.id AND m1.name='Userid' AND m2.name='Hardware Variant' AND m1.value=$userid  AND m2.value='$hwVer';", "id");
+		$matchingIds = implode(",", $matchingIds);
+		
+		$existingsets = $sqlDrv->arrayQuery("SELECT id, description FROM pd_datasetdescriptions WHERE id IN ($matchingIds)");
 		/*
 		Update Logic:
 		- Check if TOKEN belongs to submited user? (self-subscribed to your own parameters)
@@ -356,39 +358,28 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 			> NO submit NEW
 		- API show differences (like git compare)
 		*/
-		if(isset($_GET['token']))
+		if(isset($_GET['compareid']) && $_GET['compareid'] > 0)
 		{
-			$token = $_GET['token'];
-			$userId = $sqlDrv->scalarQuery("SELECT
-				m.value AS id
-			FROM pd_namedmetadata m
-				JOIN pd_subscription s
-			WHERE
-		        s.id = m.id AND
-		        m.name = 'UserId' AND
-				s.token = '$token'");
+			$id = $_GET['compareid'];
+			$userId = $sqlDrv->scalarQuery("SELECT value FROM pd_namedmetadata WHERE id=$id AND name='Userid'");
 
 			if ($userId == $user->data['user_id']) { //verify it belongs to user
 				//NEW parameters
-				$data = json_decode(json_encode($_SESSION['data']),true);
+				$data = (array)$_SESSION['data'];
 
 				//Check make sure Version (Sine/FOC) + Hardware match
-				$answers = $sqlDrv->mapQuery("SELECT 
-					m.name AS name,
-					m.value AS value
-				FROM pd_namedmetadata m
-					JOIN pd_subscription s
-				WHERE
-					m.id = s.id AND
-					(m.name = 'Version' OR m.name = 'Hardware Variant') AND
-					s.token = '$token'", "name");
+				$answers = $sqlDrv->mapQuery("SELECT name, value FROM pd_namedmetadata WHERE id = 10 AND (name = 'Firmware Version' OR name = 'Hardware Variant')", "name");
 				//print_r($answers); //debug
 
-				$swVer = $data['version']['enums'][$data['version']['value']];
-				$hwVer = $data['hwver']['enums'][$data['hwver']['value']];
+				$swVer = explode("-", $data['version']->enums[$data['version']->value])[1];
+				$hwVer = $data['hwver']->enums[$data['hwver']->value];
+				$dbSwVariant = explode("-", $answers['Firmware Version'])[1];
 
 				if ($answers['Hardware Variant'] != $hwVer) {
 					die(json_encode(['error'=>'hardware']));
+				}
+				if ($dbSwVariant != $swVer) {
+					die(json_encode(['error'=>'firmware']));
 				}
 
 				//EXISTING parameters
@@ -401,18 +392,16 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 					d.value AS value
 				FROM pd_parameters p
 					JOIN pd_data d
-					JOIN pd_subscription s
 				WHERE
 					p.id = d.parameter AND
-					s.id = d.setid AND
-					s.token = '$token'");
+					d.setid = $id");
 
 				$difference = [];
 				foreach ($rows as $row)
 				{
 					$diff = [];
-					if($data[$row['name']]['value'] != floatval($row['value'])) {
-						$diff += ['value' => ['old' => floatval($row['value']), 'new' => $data[$row['name']]['value']]];
+					if($data[$row['name']]->value != floatval($row['value'])) {
+						$diff += ['value' => ['old' => floatval($row['value']), 'new' => $data[$row['name']]->value]];
 					}
 					if(sizeof($diff) > 0) {
 						$difference += [$row['name'] => $diff];
@@ -424,10 +413,12 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 
 				echo json_encode($data);
 			}else{
-				echo json_encode($_SESSION['data']);
+				echo json_encode($data);
 			}
 		}else{
-			echo json_encode($_SESSION['data']);
+			$data = $_SESSION['data'];
+			$data->EXISTING = $existingsets;
+			echo json_encode($data);
 		}
 	}else{
 		echo json_encode([]);
@@ -479,6 +470,21 @@ else if(isset($_GET['questions']))
 {
 	$sql = "SELECT id, name, question, type, options FROM pd_metaitems WHERE question IS NOT NULL";
 	$data = [];
+	
+	if(isset($_GET['compareid']))
+	{
+		$id = $_GET['compareid'];
+		$answers = $sqlDrv->mapQuery("SELECT 
+				m.metaitem AS id,
+				m.value AS value
+			FROM pd_metadata m
+				JOIN pd_datasets d
+			WHERE
+				m.setid = d.metadata AND
+				d.id = $id", "id");
+		$notes = $sqlDrv->scalarQuery("SELECT notes FROM pd_datasets WHERE id=$id");
+		$data[] = [ "value" => $notes, "type" => "notes" ];
+	}
 
 	foreach ($sqlDrv->arrayQuery($sql) as $row)
 	{
@@ -495,17 +501,9 @@ else if(isset($_GET['questions']))
 		{
 			$question += ['value' => $_SESSION['filter'][$row['id']]];
 		}
-		else if(isset($_GET['token'])) //Existing Parameter
+		else if(isset($answers[$row['id']])) //Existing Parameter
 		{
-			$token = $_GET['token'];
-			$answers = $sqlDrv->mapQuery("SELECT 
-					m.metaitem AS id,
-					m.value AS value
-				FROM pd_metadata m
-					JOIN pd_subscription s
-				WHERE
-					m.setid = s.id AND
-					s.token = '$token'", "id");
+			//$notes = $sqlDrv->scalarQuery("SELECT notes FROM pd_datasets WHERE id=$id");
 			//print_r($answers); //debug
 
 			$question += ['value' => $answers[$row['id']]];

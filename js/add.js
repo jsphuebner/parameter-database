@@ -1,5 +1,12 @@
 document.addEventListener("DOMContentLoaded", function(event)
 {
+	buildDocument(-1);
+});
+
+function buildDocument(compareid)
+{
+	document.getElementById('parameter-questions').innerHTML = "";
+	document.getElementById('parameter-data').innerHTML = "";
     var xhr = new XMLHttpRequest();
     xhr.responseType = 'json';
     xhr.onload = function() {
@@ -18,9 +25,22 @@ document.addEventListener("DOMContentLoaded", function(event)
             	{
 		            var category = [];
 		            var t = 0;
+		            
+		            if (json.EXISTING && compareid < 0) //compareid < 0 when page is first built
+		            {
+		            	var select = document.getElementById("compareid");
+		            	
+		            	for (var i in json.EXISTING) {
+		            		var option = document.createElement('option');
+		            		option.value = json.EXISTING[i].id;
+		            		option.textContent = json.EXISTING[i].description;
+		            		select.appendChild(option);
+		            	}
+		            }
 
 		            for(var key in json)
 		            {
+		            	if (json[key].category == "Testing") continue; //Ignore test parameters
 		                if(t == 0)
 		                {
 		                    var row = document.createElement('thead');
@@ -36,29 +56,21 @@ document.addEventListener("DOMContentLoaded", function(event)
 		                    col.textContent = 'parameter';
 		                    row.appendChild(col);
 
-		                    colspan = Object.keys(json[key]);
-		                    for (i = 1; i < colspan.length-2; i++)
-		                    {
-		                    	if(json['DIFF'] != undefined)
-		                    	{
-			                    	if (i == 1){
-			                    		var col = document.createElement('th');
-				                        col.textContent = 'old value';
-				                        row.appendChild(col);
-				                        var col = document.createElement('th');
-				                        col.textContent = 'new value';
-				                        row.appendChild(col);
-				                        continue;
-			                    	}
-			                    }
-			                   	var col = document.createElement('th');
-		                        col.textContent = colspan[i];
+	                    	if(json['DIFF'] != undefined)
+	                    	{
+	                    		var col = document.createElement('th');
+		                        col.textContent = 'old value';
+		                        row.appendChild(col);
+		                        var col = document.createElement('th');
+		                        col.textContent = 'new value';
 		                        row.appendChild(col);
 		                    }
-
-		                    var col = document.createElement('th');
-		                    col.textContent = colspan[0];
-		                    row.appendChild(col);
+		                    else
+		                    {
+		                        var col = document.createElement('th');
+		                        col.textContent = 'value';
+		                        row.appendChild(col);
+		                    }
 
 		                    table.appendChild(row);
 		                }
@@ -73,7 +85,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 		                        var row = document.createElement('tr');
 		                        row.className = 'text-light bg-secondary';
 		                        
-		                        var colspan = Object.keys(json[key]).length;
+		                        var colspan = 3; //Object.keys(json[key]).length;
 		                        if(json['DIFF'] != undefined)
 		                        	colspan += 2;
 		                        var col = document.createElement('td');
@@ -114,35 +126,22 @@ document.addEventListener("DOMContentLoaded", function(event)
 		                    col.textContent = key;
 		                    row.appendChild(col);
 
-		                    colspan = Object.keys(json[key]);
-		                    for (i = 1; i < colspan.length-2; i++)
-		                    {
-		                    	if(json['DIFF'] != undefined)
-		                    	{
-				                    if(i == 1) {
-				                    	if (json['DIFF'][key] != undefined)
-				                    	{
-											var col = document.createElement('td');
-											//col.className = 'bg-danger';
-											col.textContent = json['DIFF'][key].value.old;
-											row.appendChild(col);
+	                    	if (json['DIFF'] && json['DIFF'][key] != undefined)
+	                    	{
+								var col = document.createElement('td');
+								//col.className = 'bg-danger';
+								col.textContent = json['DIFF'][key].value.old;
+								row.appendChild(col);
 
-											var col = document.createElement('td');
-											//col.className = 'bg-success';
-											col.textContent = json['DIFF'][key].value.new;
-											row.appendChild(col);
-											continue;
-										}else{
-											var col = document.createElement('td');
-			                        		col.textContent = json[key][colspan[i]];
-			                        		row.appendChild(col);
-										}
-				                    }
-				                }
-		                        var col = document.createElement('td');
-		                        col.textContent = json[key][colspan[i]];
-		                        row.appendChild(col);
-		                    }
+								var col = document.createElement('td');
+								//col.className = 'bg-success';
+								col.textContent = json['DIFF'][key].value.new;
+								row.appendChild(col);
+							}else{
+								var col = document.createElement('td');
+                        		col.textContent = json[key].value;
+                        		row.appendChild(col);
+							}
 
 		                    var col = document.createElement('td');
 		                    col.textContent = json[key][colspan[0]];
@@ -176,6 +175,11 @@ document.addEventListener("DOMContentLoaded", function(event)
 				            textarea.setAttribute('id', 'notes');
 				            textarea.setAttribute('placeholder', 'Notes');
 							//textarea.style = 'min-width: 100%';
+							if (qjson[0].type == "notes")
+							{
+								textarea.value = qjson[0].value;
+							}
+							
 				    		fieldset.appendChild(textarea);
 				    		form.appendChild(fieldset);
 
@@ -186,16 +190,15 @@ document.addEventListener("DOMContentLoaded", function(event)
 				    			var td = document.createElement('td');
 
 						       	var token = document.createElement('input');
-							    token.setAttribute('type', 'text');
-							    token.setAttribute('name', 'token');
-							    token.setAttribute('hidden', true);
-							    token.setAttribute('value', window.location.search.substr(1).replace('token=',''));
+							    token.setAttribute('type', 'hidden');
+							    token.setAttribute('name', 'id');
+							    token.setAttribute('value', compareid);
 								form.appendChild(token);
 
 				    			var submitUpdate = document.createElement('button');
 					            submitUpdate.setAttribute('type', 'submit');
 					            submitUpdate.setAttribute('name', 'update');
-								submitUpdate.className = 'btn btn-warning mr-3';
+								submitUpdate.className = 'btn btn-secondary mr-3';
 								submitUpdate.textContent = 'Update Parameters';
 								submitUpdate.onclick = function() {
 				                    this.setAttribute('value', cherryPick());
@@ -203,21 +206,24 @@ document.addEventListener("DOMContentLoaded", function(event)
 								td.appendChild(submitUpdate);
 								tr.appendChild(td);
 				    		}
+				    		else
+				    		{
+								var td = document.createElement('td');
+								var submitNew = document.createElement('button');
+						        submitNew.setAttribute('type', 'submit');
+						        submitNew.setAttribute('name', 'addnew');
+								submitNew.className = 'btn btn-secondary mr-3';
+								submitNew.textContent = 'Add New Parameters';
+								td.appendChild(submitNew);
+								tr.appendChild(td);
+				    		}
 
-				    		var td = document.createElement('td');
-				    		var submitNew = document.createElement('button');
-				            submitNew.setAttribute('type', 'submit');
-				            submitNew.setAttribute('name', 'addnew');
-							submitNew.className = 'btn btn-secondary mr-3';
-							submitNew.textContent = 'Add New Parameters';
-							td.appendChild(submitNew);
-							tr.appendChild(td);
 
 							table.appendChild(tr);
 				    		form.appendChild(table);
 				        }
 				    };
-				    qxhr.open('GET', 'api.php?questions&' + window.location.search.substr(1), true);
+				    qxhr.open('GET', 'api.php?questions&compareid=' + compareid + "&" + window.location.search.substr(1), true);
 				    qxhr.send();
 				}else if(json['error'] == 'login') {
 					upload.appendChild(buildLogin());
@@ -225,6 +231,11 @@ document.addEventListener("DOMContentLoaded", function(event)
 					var error = document.createElement('div');
 					error.className = 'bg-danger text-light mt-4';
 					error.textContent = 'Hardware mismatch. Cannot update parameters for different Hardware.';
+					upload.appendChild(error);
+				}else if(json['error'] == 'firmware') {
+					var error = document.createElement('div');
+					error.className = 'bg-danger text-light mt-4';
+					error.textContent = 'Firmware mismatch. Cannot update parameters for different firmware variant.';
 					upload.appendChild(error);
 				}else{
 					var error = document.createElement('div');
@@ -237,9 +248,9 @@ document.addEventListener("DOMContentLoaded", function(event)
             table.appendChild(tbody);
         }
     };
-    xhr.open('GET', 'api.php?submit&' + window.location.search.substr(1), true);
+    xhr.open('GET', 'api.php?submit&compareid=' + compareid + "&" + window.location.search.substr(1), true);
     xhr.send();
-});
+}
 
 function cherryPick()
 {

@@ -361,64 +361,65 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 		//NEW parameters
 		$data = $_SESSION['data'];
 
+		//EXISTING parameters
+		if(isset($_GET['compareid']) && $_GET['compareid'] > 0)
+		{
+			$id = $_GET['compareid'];
+			$userId = $sqlDrv->scalarQuery("SELECT value FROM pd_namedmetadata WHERE id=$id AND name='Userid'");
+			$rows = $sqlDrv->arrayQuery("SELECT 
+				#p.id AS id,
+				#d.setid AS setid,
+				#p.category AS category,
+				#p.unit AS unit,
+				p.name AS name,
+				d.value AS value
+			FROM pd_parameters p
+				JOIN pd_data d
+			WHERE
+				p.id = d.parameter AND
+				d.setid = $id");
+			$answers = $sqlDrv->mapQuery("SELECT name, value FROM pd_namedmetadata WHERE id = $id AND (name = 'Version' OR name = 'Hardware Variant')", "name");
+			//print_r($answers); //debug
+		}
+		else if(isset($_GET['token']))
+		{
+			$token = $_GET['token'];
+			$userId = $sqlDrv->scalarQuery("SELECT
+				m.value AS id
+			FROM pd_namedmetadata m
+				JOIN pd_subscription s
+			WHERE
+		        s.id = m.id AND
+		        m.name = 'UserId' AND
+				s.token = '$token'");
+			$rows = $sqlDrv->arrayQuery("SELECT 
+				#p.id AS id,
+				#d.setid AS setid,
+				#p.category AS category,
+				#p.unit AS unit,
+				p.name AS name,
+				d.value AS value
+			FROM pd_parameters p
+				JOIN pd_data d
+				JOIN pd_subscription s
+			WHERE
+				p.id = d.parameter AND
+				s.id = d.setid AND
+				s.token = '$token'");
+			$answers = $sqlDrv->mapQuery("SELECT 
+				m.name AS name,
+				m.value AS value
+			FROM pd_namedmetadata m
+				JOIN pd_subscription s
+			WHERE
+				m.id = s.id AND
+				(m.name = 'Version' OR m.name = 'Hardware Variant') AND
+				s.token = '$token'", "name");
+			//print_r($answers); //debug
+		}
+
 		if ($userId == $user->data['user_id']) { //verify it belongs to user
-			//EXISTING parameters
-			if(isset($_GET['compareid']) && $_GET['compareid'] > 0)
-			{
-				$id = $_GET['compareid'];
-				$userId = $sqlDrv->scalarQuery("SELECT value FROM pd_namedmetadata WHERE id=$id AND name='Userid'");
-				$rows = $sqlDrv->arrayQuery("SELECT 
-					#p.id AS id,
-					#d.setid AS setid,
-					#p.category AS category,
-					#p.unit AS unit,
-					p.name AS name,
-					d.value AS value
-				FROM pd_parameters p
-					JOIN pd_data d
-				WHERE
-					p.id = d.parameter AND
-					d.setid = $id");
-				$answers = $sqlDrv->mapQuery("SELECT name, value FROM pd_namedmetadata WHERE id = $id AND (name = 'Version' OR name = 'Hardware Variant')", "name");
-				//print_r($answers); //debug
-			}
-			else if(isset($_GET['token']))
-			{
-				$token = $_GET['token'];
-				$userId = $sqlDrv->scalarQuery("SELECT
-					m.value AS id
-				FROM pd_namedmetadata m
-					JOIN pd_subscription s
-				WHERE
-			        s.id = m.id AND
-			        m.name = 'UserId' AND
-					s.token = '$token'");
-				$rows = $sqlDrv->arrayQuery("SELECT 
-					#p.id AS id,
-					#d.setid AS setid,
-					#p.category AS category,
-					#p.unit AS unit,
-					p.name AS name,
-					d.value AS value
-				FROM pd_parameters p
-					JOIN pd_data d
-					JOIN pd_subscription s
-				WHERE
-					p.id = d.parameter AND
-					s.id = d.setid AND
-					s.token = '$token'");
-				$answers = $sqlDrv->mapQuery("SELECT 
-					m.name AS name,
-					m.value AS value
-				FROM pd_namedmetadata m
-					JOIN pd_subscription s
-				WHERE
-					m.id = s.id AND
-					(m.name = 'Version' OR m.name = 'Hardware Variant') AND
-					s.token = '$token'", "name");
-				//print_r($answers); //debug
-			}
-			
+
 			$hwVer = $data->hwver->enums[$data->hwver->value];
 			$swVer = explode("-", $data->version->enums[$data->version->value])[1];
 			$dbSwVariant = explode("-", $answers['Version'])[1];
@@ -445,6 +446,8 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 				}
 				//TODO: Also compare ADD (new firmware parameter in future)
 			}
+
+			$data->EXISTING = $existingsets;
 		}
 		echo json_encode($data);
 	}else{

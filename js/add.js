@@ -33,6 +33,7 @@ function buildDocument(compareid)
 		            if (json.EXISTING && compareid < 0) //compareid < 0 when page is first built
 		            {
 		            	var select = document.getElementById("compareid");
+		            	select.innerHTML = "<option value=0>&lt;Create New&gt;</option>";
 		            	
 		            	for (var i in json.EXISTING) {
 		            		var option = document.createElement('option');
@@ -238,16 +239,16 @@ function buildDocument(compareid)
 								}
 								td.appendChild(submitUpdate);
 								tr.appendChild(td);
+				    		}else{
+				    			var td = document.createElement('td');
+					    		var submitNew = document.createElement('button');
+					            submitNew.setAttribute('type', 'submit');
+					            submitNew.setAttribute('name', 'addnew');
+								submitNew.className = 'btn btn-secondary mr-3';
+								submitNew.textContent = 'Add New Parameters';
+								td.appendChild(submitNew);
+								tr.appendChild(td);
 				    		}
-
-				    		var td = document.createElement('td');
-				    		var submitNew = document.createElement('button');
-				            submitNew.setAttribute('type', 'submit');
-				            submitNew.setAttribute('name', 'addnew');
-							submitNew.className = 'btn btn-secondary mr-3';
-							submitNew.textContent = 'Add New Parameters';
-							td.appendChild(submitNew);
-							tr.appendChild(td);
 
 							table.appendChild(tr);
 				    		form.appendChild(table);

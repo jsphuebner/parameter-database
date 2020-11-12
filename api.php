@@ -153,7 +153,7 @@ if(isset($_GET['id']))
 		$userId = $sqlDrv->scalarQuery("SELECT value FROM pd_metadata,pd_datasets d WHERE setid=d.metadata AND d.id=$id AND metaitem=4");
 		$metasetId = $sqlDrv->scalarQuery("SELECT setid FROM pd_metadata,pd_datasets d WHERE setid=d.metadata AND d.id=$id AND metaitem=4");
 		
-		if ($userId == $user->data['user_id']) { //verify it belongs to user
+		if ($userId == $user->data['user_id']) { // verify it belongs to user
 			
 			$sqlDrv->query("DELETE FROM pd_rating WHERE id=$id");
 			$sqlDrv->query("DELETE FROM pd_subscription WHERE id=$id");
@@ -186,7 +186,7 @@ else if(isset($_GET['user']))
 		echo json_encode([]);
 	}
 }
-else if(isset($_POST['filter']))
+else if(isset($_POST['filter'])) // remmember filter settings with cookies
 {
 	header('Content-Type: text/html');
 
@@ -204,9 +204,9 @@ else if(isset($_POST['filter']))
 		$_SESSION['filter'] = $filter;
 	}
 	
-	header('Location: index.html');
+	header('Location: index.html'); //TODO: dynamically to previous page
 }
-else if(isset($_GET['filter']))
+else if(isset($_GET['filter'])) // show previous filter settings
 {
 	if(isset($_SESSION['filter']))
 	{
@@ -215,7 +215,7 @@ else if(isset($_GET['filter']))
 		echo json_encode([]);
 	}
 }
-else if(isset($_GET['pages']))
+else if(isset($_GET['pages'])) // show total page counter
 {
 	$pages = $sqlDrv->scalarQuery("SELECT COUNT(id) FROM pd_datasets");
 	$data = ['pages' => ceil($pages/$QUERYLIMIT)-1];
@@ -223,7 +223,7 @@ else if(isset($_GET['pages']))
 
 	echo json_encode($data);
 }
-else if(isset($_POST['submit']) || isset($_POST['update']))
+else if(isset($_POST['update'])) // update existing parameters
 {
 	if (!$user->data['is_registered']) {
 		die(json_encode(['error'=>'login']));
@@ -231,85 +231,117 @@ else if(isset($_POST['submit']) || isset($_POST['update']))
 
 	header('Content-Type: text/html');
 
-	if(isset($_POST['update'])) {
+	if(isset($_POST['token'])) {
+		$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_subscription WHERE token='" . $_POST['token']. "'");
+		if(count($dataId) == 0) {
+			die('Parameter ID Not Found');
+		}
+		$id = $dataId[0]['id'];
+	}else if(isset($_POST['id'])) {
+		$id = $_POST['id'];
+	}
 
-		echo "Update ";
-
-		$filter = explode(':', $_POST['update']);
-
-		//....
+	$userId = $sqlDrv->scalarQuery("SELECT value FROM pd_metadata,pd_datasets d WHERE setid=d.metadata AND d.id=$id AND metaitem=4");
 		
-	}else{
-
-		echo "Add New ";
+	if ($userId == $user->data['user_id']) { // verify it belongs to user
 
 		$parameters = $_SESSION['data'];
 
-		$md = $_POST['md'];
-		$notes = $_POST['notes'];
-		
-		$sqlDrv->query("START TRANSACTION");
-		$setId = $sqlDrv->scalarQuery("SELECT MAX(setid) FROM pd_metadata") + 1;
-		$sql = "INSERT pd_metadata (setid, metaitem, value) VALUES ";
-
-		foreach ($md as $id => $value)
-		{
-			$sql.= "($setId, $id, '$value'),";
-		}
-		
 		$swVer = $parameters->version->enums[$parameters->version->value];
-		$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
-
-		$sql .= "($setId, 1, '$swVer'),";
-		$sql .= "($setId, 3, '$hwVer'),";
-		$sql .= "($setId, 2, NOW()),";
-		$sql .= "($setId, 4, ". $user->data['user_id']. ")";
-		$sqlDrv->query($sql);
-
-		$index = 0;
-		$catIndex = -1;
-		$lastCat = "";
-		foreach ($parameters as $name => $attributes)
-		{
-			if ($attributes->isparam && $attributes->category != "Testing")
-			{
-				if ($lastCat != $attributes->category)
-				{
-					$lastCat = $attributes->category;
-					$catIndex++;
-				}
-
-				$params[] = "('$attributes->category', $catIndex, $index, '$name', '$attributes->unit')";
-			}
-			$index++;
-		}
 		
-		$sql = "INSERT IGNORE pd_parameters (category, catindex, fwindex, name, unit) VALUES ".implode(",", $params);
-		$sqlDrv->query($sql);
-		$paramMap = $sqlDrv->mapQuery("SELECT id, name FROM pd_parameters", "name");
-		$sqlDrv->query("INSERT pd_datasets (metadata,notes) VALUES ($setId,'$notes')");
-		$dataId = $sqlDrv->scalarQuery("SELECT LAST_INSERT_ID()");
+		//MetaData Updates (no $hwVer it should stay the same)
+		$sqlDrv->query("UPDATE pd_metadata SET value='$swVer' WHERE setid=$id AND metaitem=1");
+		$sqlDrv->query("UPDATE pd_metadata SET value=NOW() WHERE setid=$id AND metaitem=2");
 
-		foreach ($parameters as $name => $attributes)
+		//Parameters Updates
+		$rows = explode(':', $_POST['update']);
+		foreach ($rows as $row)
 		{
-			if ($attributes->isparam && $attributes->category != "Testing")
-			{
-				$paramId = $paramMap[$name];
-				$values[] = "($dataId, $paramId, $attributes->value)";
-			}
+			$sqlDrv->query("UPDATE pd_data SET value=" .$parameters->{$row}->value. " WHERE setid=$id AND parameter=(SELECT id from pd_parameters WHERE name='$row')");
+			print($row. " > ". $parameters->{$row}->value. " ($id)"); //debug
 		}
-		
-		$sql = "INSERT IGNORE pd_data (setid, parameter, value) VALUES ".implode(",", $values);
-		$sqlDrv->query($sql);
+		unset($_SESSION['data']);
 
-		$sqlDrv->query("COMMIT");
+		echo "Updated. <a href='my.html'>My Parameters</a>";
+
+	}else{
+		die('Not Allowed');
 	}
+}
+else if(isset($_POST['addnew'])) // add new parameter
+{
+	if (!$user->data['is_registered']) {
+		die(json_encode(['error'=>'login']));
+	}
+
+	header('Content-Type: text/html');
+
+	$parameters = $_SESSION['data'];
+
+	$md = $_POST['md'];
+	$notes = $_POST['notes'];
+	
+	$sqlDrv->query("START TRANSACTION");
+	$setId = $sqlDrv->scalarQuery("SELECT MAX(setid) FROM pd_metadata") + 1;
+	$sql = "INSERT pd_metadata (setid, metaitem, value) VALUES ";
+
+	foreach ($md as $id => $value)
+	{
+		$sql.= "($setId, $id, '$value'),";
+	}
+	
+	$swVer = $parameters->version->enums[$parameters->version->value];
+	$hwVer = $parameters->hwver->enums[$parameters->hwver->value];
+
+	$sql .= "($setId, 1, '$swVer'),";
+	$sql .= "($setId, 3, '$hwVer'),";
+	$sql .= "($setId, 2, NOW()),";
+	$sql .= "($setId, 4, ". $user->data['user_id']. ")";
+	$sqlDrv->query($sql);
+
+	$index = 0;
+	$catIndex = -1;
+	$lastCat = "";
+	foreach ($parameters as $name => $attributes)
+	{
+		if ($attributes->isparam && $attributes->category != "Testing")
+		{
+			if ($lastCat != $attributes->category)
+			{
+				$lastCat = $attributes->category;
+				$catIndex++;
+			}
+
+			$params[] = "('$attributes->category', $catIndex, $index, '$name', '$attributes->unit')";
+		}
+		$index++;
+	}
+	
+	$sql = "INSERT IGNORE pd_parameters (category, catindex, fwindex, name, unit) VALUES ".implode(",", $params);
+	$sqlDrv->query($sql);
+	$paramMap = $sqlDrv->mapQuery("SELECT id, name FROM pd_parameters", "name");
+	$sqlDrv->query("INSERT pd_datasets (metadata,notes) VALUES ($setId,'$notes')");
+	$dataId = $sqlDrv->scalarQuery("SELECT LAST_INSERT_ID()");
+
+	foreach ($parameters as $name => $attributes)
+	{
+		if ($attributes->isparam && $attributes->category != "Testing")
+		{
+			$paramId = $paramMap[$name];
+			$values[] = "($dataId, $paramId, $attributes->value)";
+		}
+	}
+	
+	$sql = "INSERT IGNORE pd_data (setid, parameter, value) VALUES ".implode(",", $values);
+	$sqlDrv->query($sql);
+
+	$sqlDrv->query("COMMIT");
 
 	unset($_SESSION['data']);
 
 	echo "Done. <a href='my.html'>My Parameters</a>";
 }
-else if(isset($_GET['submit']))
+else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to user (after login)
 {
 	if (!$user->data['is_registered']) {
 		die(json_encode(['error'=>'login']));
@@ -361,10 +393,11 @@ else if(isset($_GET['submit']))
 
 				//EXISTING parameters
 				$rows = $sqlDrv->arrayQuery("SELECT 
-					d.setid AS setid,
-					p.category AS category,
+					#p.id AS id,
+					#d.setid AS setid,
+					#p.category AS category,
+					#p.unit AS unit,
 					p.name AS name,
-					p.unit AS unit,
 					d.value AS value
 				FROM pd_parameters p
 					JOIN pd_data d
@@ -400,7 +433,7 @@ else if(isset($_GET['submit']))
 		echo json_encode([]);
 	}
 }
-else if(isset($_FILES['data']) || isset($_POST['data']))
+else if(isset($_FILES['data']) || isset($_POST['data'])) // pre-submit remmember $_SESSION['data'] redirect to ask for more meta-data
 {
 	header('Content-Type: text/html');
 
@@ -501,7 +534,7 @@ else if(isset($_GET['my']))
 		$subs = $sqlDrv->arrayQuery("SELECT id, token, stamp FROM pd_subscription WHERE id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC");
 		echo json_encode($subs);
 	}else{
-		$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id ASC"); // LIMIT $OFFSET, " .($QUERYLIMIT * 10));
+		$rows = $sqlDrv->arrayQuery("SELECT id, name, value FROM pd_namedmetadata WHERE name!='Userid' AND id IN (" .implode(",", dataIdArray($dataId)). ") ORDER BY id,question ASC"); // LIMIT $OFFSET, " .($QUERYLIMIT * 10));
 		$subs = $sqlDrv->mapQuery("SELECT id, COUNT(*) AS total FROM pd_subscription WHERE id IN (" .implode(",", dataIdArray($dataId)). ") GROUP BY id","id");
 		//print_r($subs); //debug
 
@@ -617,7 +650,7 @@ else if(isset($_GET['token']))
 		}
 	}
 	
-	$sql .= "ORDER BY id ASC LIMIT $OFFSET, ". ($QUERYLIMIT * 10);
+	$sql .= "ORDER BY id,question ASC LIMIT $OFFSET, ". ($QUERYLIMIT * 10);
 	//echo $sql;
 
 	$rows = $sqlDrv->arrayQuery($sql);

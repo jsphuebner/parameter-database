@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 			        console.log(json[key][item]);
                     if(item != 'id') {
     			        var col = document.createElement('td');
-    			        if(i == 2) {
+    			        if(i == 1) {
     			        	var a = document.createElement('a');
     			        	a.setAttribute('href', 'view.html?id=' + json[key]['id']);
     			        	a.textContent = json[key][item];

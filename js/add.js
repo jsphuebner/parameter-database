@@ -12,13 +12,6 @@ document.addEventListener("DOMContentLoaded", function(event)
 
 	        var upload = document.getElementById('parameter-upload');
 
-	       	var token = document.createElement('input');
-		    token.setAttribute('type', 'text');
-		    token.setAttribute('name', 'token');
-		    token.setAttribute('hidden', true);
-		    token.setAttribute('value', window.location.search.substr(1).replace('token=',''));
-			upload.appendChild(token);
-
             if(Object.keys(json).length > 0)
             {
             	if(json['error'] == undefined)
@@ -191,6 +184,14 @@ document.addEventListener("DOMContentLoaded", function(event)
 
 				    		if(json['DIFF'] != undefined) {
 				    			var td = document.createElement('td');
+
+						       	var token = document.createElement('input');
+							    token.setAttribute('type', 'text');
+							    token.setAttribute('name', 'token');
+							    token.setAttribute('hidden', true);
+							    token.setAttribute('value', window.location.search.substr(1).replace('token=',''));
+								form.appendChild(token);
+
 				    			var submitUpdate = document.createElement('button');
 					            submitUpdate.setAttribute('type', 'submit');
 					            submitUpdate.setAttribute('name', 'update');
@@ -206,7 +207,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 				    		var td = document.createElement('td');
 				    		var submitNew = document.createElement('button');
 				            submitNew.setAttribute('type', 'submit');
-				            submitNew.setAttribute('name', 'submit');
+				            submitNew.setAttribute('name', 'addnew');
 							submitNew.className = 'btn btn-secondary mr-3';
 							submitNew.textContent = 'Add New Parameters';
 							td.appendChild(submitNew);

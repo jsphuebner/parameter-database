@@ -232,7 +232,7 @@ else if(isset($_POST['update'])) // update existing parameters
 	header('Content-Type: text/html');
 
 	if(isset($_POST['token'])) {
-		$dataId = $sqlDrv->arrayQuery("SELECT 1 id FROM pd_subscription WHERE token='" . $_POST['token']. "'");
+		$dataId = $sqlDrv->arrayQuery("SELECT id FROM pd_subscription WHERE token='" . $_POST['token']. "'");
 		if(count($dataId) == 0) {
 			die('Parameter ID Not Found');
 		}

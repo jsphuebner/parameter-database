@@ -21,6 +21,7 @@ function buildDocument(compareid)
 
             if(Object.keys(json).length > 0)
             {
+            	document.getElementById('parameter-error').classList.add('hidden');
             	document.getElementById('parameter-upload').classList.add('hidden');
             	document.getElementById('parameter-addnew-update').classList.remove('hidden');
 
@@ -259,12 +260,15 @@ function buildDocument(compareid)
 				}else if(json['error'] == 'firmware') {
 					error.className = 'bg-danger text-light mt-4';
 					error.textContent = 'Firmware mismatch. Cannot update parameters for different firmware variant.';
+					document.getElementById('parameter-upload').classList.remove('hidden');
 				}else if(json['error'] == 'hardware') {
 					error.className = 'bg-danger text-light mt-4';
 					error.textContent = 'Hardware mismatch. Cannot update parameters for different Hardware.';
+					document.getElementById('parameter-upload').classList.remove('hidden');
 				}else{
 					error.className = 'bg-danger text-light mt-4';
 					error.textContent = 'Upload Error. Requires full JSON output with categories. Snapshot files are not valid.';
+					document.getElementById('parameter-upload').classList.remove('hidden');
 				}
             }else{
             	document.getElementById('parameter-upload').classList.remove('hidden');

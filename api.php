@@ -366,20 +366,25 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 		{
 			$id = $_GET['compareid'];
 			$userId = $sqlDrv->scalarQuery("SELECT value FROM pd_namedmetadata WHERE id=$id AND name='Userid'");
-			$rows = $sqlDrv->arrayQuery("SELECT 
-				#p.id AS id,
-				#d.setid AS setid,
-				#p.category AS category,
-				#p.unit AS unit,
-				p.name AS name,
-				d.value AS value
-			FROM pd_parameters p
-				JOIN pd_data d
-			WHERE
-				p.id = d.parameter AND
-				d.setid = $id");
-			$answers = $sqlDrv->mapQuery("SELECT name, value FROM pd_namedmetadata WHERE id = $id AND (name = 'Version' OR name = 'Hardware Variant')", "name");
-			//print_r($answers); //debug
+			if ($userId == $user->data['user_id']) // verify it belongs to user
+			{
+				$rows = $sqlDrv->arrayQuery("SELECT 
+					#p.id AS id,
+					#d.setid AS setid,
+					#p.category AS category,
+					#p.unit AS unit,
+					p.name AS name,
+					d.value AS value
+				FROM pd_parameters p
+					JOIN pd_data d
+				WHERE
+					p.id = d.parameter AND
+					d.setid = $id");
+				$answers = $sqlDrv->mapQuery("SELECT name, value FROM pd_namedmetadata WHERE id = $id AND (name = 'Version' OR name = 'Hardware Variant')", "name");
+				//print_r($answers); //debug
+			}else{
+				$userId = $user->data['user_id'];
+			}
 		}
 		else if(isset($_GET['token']))
 		{
@@ -392,41 +397,50 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 		        s.id = m.id AND
 		        m.name = 'UserId' AND
 				s.token = '$token'");
-			$rows = $sqlDrv->arrayQuery("SELECT 
-				#p.id AS id,
-				#d.setid AS setid,
-				#p.category AS category,
-				#p.unit AS unit,
-				p.name AS name,
-				d.value AS value
-			FROM pd_parameters p
-				JOIN pd_data d
-				JOIN pd_subscription s
-			WHERE
-				p.id = d.parameter AND
-				s.id = d.setid AND
-				s.token = '$token'");
-			$answers = $sqlDrv->mapQuery("SELECT 
-				m.name AS name,
-				m.value AS value
-			FROM pd_namedmetadata m
-				JOIN pd_subscription s
-			WHERE
-				m.id = s.id AND
-				(m.name = 'Version' OR m.name = 'Hardware Variant') AND
-				s.token = '$token'", "name");
-			//print_r($answers); //debug
+			if ($userId == $user->data['user_id']) // verify it belongs to user
+			{
+				$rows = $sqlDrv->arrayQuery("SELECT 
+					#p.id AS id,
+					#d.setid AS setid,
+					#p.category AS category,
+					#p.unit AS unit,
+					p.name AS name,
+					d.value AS value
+				FROM pd_parameters p
+					JOIN pd_data d
+					JOIN pd_subscription s
+				WHERE
+					p.id = d.parameter AND
+					s.id = d.setid AND
+					s.token = '$token'");
+				$answers = $sqlDrv->mapQuery("SELECT 
+					m.name AS name,
+					m.value AS value
+				FROM pd_namedmetadata m
+					JOIN pd_subscription s
+				WHERE
+					m.id = s.id AND
+					(m.name = 'Version' OR m.name = 'Hardware Variant') AND
+					s.token = '$token'", "name");
+				//print_r($answers); //debug
+			}else{
+				$userId = $user->data['user_id'];
+			}
+		}else{
+			$userId = $user->data['user_id'];
 		}
 
-		if ($userId == $user->data['user_id']) { //verify it belongs to user
+		$hwVer = $data->hwver->enums[$data->hwver->value];
+		$matchingIds = $sqlDrv->arrayQuery("SELECT m1.id FROM pd_namedmetadata m1, pd_namedmetadata m2 WHERE m1.id=m2.id AND m1.name='Userid' AND m2.name='Hardware Variant' AND m1.value=$userId  AND m2.value='$hwVer';", "id");
+		$matchingIds = implode(",", $matchingIds);
+		$existingsets = $sqlDrv->arrayQuery("SELECT id, description FROM pd_datasetdescriptions WHERE id IN ($matchingIds)");
+		
+		$data->EXISTING = $existingsets;
 
-			$hwVer = $data->hwver->enums[$data->hwver->value];
+		if (isset($rows) && isset($answers)) { //verify it belongs to user
+			
 			$swVer = explode("-", $data->version->enums[$data->version->value])[1];
 			$dbSwVariant = explode("-", $answers['Version'])[1];
-
-			$matchingIds = $sqlDrv->arrayQuery("SELECT m1.id FROM pd_namedmetadata m1, pd_namedmetadata m2 WHERE m1.id=m2.id AND m1.name='Userid' AND m2.name='Hardware Variant' AND m1.value=$userId  AND m2.value='$hwVer';", "id");
-			$matchingIds = implode(",", $matchingIds);
-			$existingsets = $sqlDrv->arrayQuery("SELECT id, description FROM pd_datasetdescriptions WHERE id IN ($matchingIds)");
 
 			//Check make sure Version (Sine/FOC) + Hardware match
 			if ($answers['Hardware Variant'] != $hwVer) {
@@ -436,8 +450,6 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 				die(json_encode(['error'=>'firmware']));
 			}
 
-			$data->EXISTING = $existingsets;
-
 			foreach ($rows as $row)
 			{
 				if($data->{$row['name']}->value != floatval($row['value'])) {
@@ -446,9 +458,8 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 				}
 				//TODO: Also compare ADD (new firmware parameter in future)
 			}
-
-			$data->EXISTING = $existingsets;
 		}
+
 		echo json_encode($data);
 	}else{
 		echo json_encode([]);

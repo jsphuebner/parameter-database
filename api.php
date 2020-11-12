@@ -257,7 +257,7 @@ else if(isset($_POST['update'])) // update existing parameters
 		$rows = explode(':', $_POST['update']);
 		foreach ($rows as $row)
 		{
-			$sqlDrv->query("UPDATE pd_data SET value=" .$parameters->{$row}->value. " WHERE setid=$id AND parameter=(SELECT 1 id from pd_parameters WHERE name='$row')");
+			$sqlDrv->query("UPDATE pd_data SET value=" .$parameters->{$row}->value. " WHERE setid=$id AND parameter=(SELECT id from pd_parameters WHERE name='$row')");
 			print($row. " > ". $parameters->{$row}->value. " ($id)"); //debug
 		}
 		unset($_SESSION['data']);

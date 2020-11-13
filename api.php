@@ -366,31 +366,7 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 		}
 
 		//EXISTING parameters
-		if(isset($_GET['compareid']) && $_GET['compareid'] > 0)
-		{
-			$id = $_GET['compareid'];
-			$userId = $sqlDrv->scalarQuery("SELECT value FROM pd_namedmetadata WHERE id=$id AND name='Userid'");
-			if ($userId == $user->data['user_id']) // verify it belongs to user
-			{
-				$rows = $sqlDrv->arrayQuery("SELECT 
-					#p.id AS id,
-					#d.setid AS setid,
-					#p.category AS category,
-					#p.unit AS unit,
-					p.name AS name,
-					d.value AS value
-				FROM pd_parameters p
-					JOIN pd_data d
-				WHERE
-					p.id = d.parameter AND
-					d.setid = $id");
-				$answers = $sqlDrv->mapQuery("SELECT name, value FROM pd_namedmetadata WHERE id = $id AND (name = 'Version' OR name = 'Hardware Variant')", "name");
-				//print_r($answers); //debug
-			}else{
-				$userId = $user->data['user_id'];
-			}
-		}
-		else if(isset($_GET['token']))
+		if (!empty($_GET['token']))
 		{
 			$token = $_GET['token'];
 			$userId = $sqlDrv->scalarQuery("SELECT
@@ -426,6 +402,30 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 					m.id = s.id AND
 					(m.name = 'Version' OR m.name = 'Hardware Variant') AND
 					s.token = '$token'", "name");
+				//print_r($answers); //debug
+			}else{
+				$userId = $user->data['user_id'];
+			}
+		}
+		else if(isset($_GET['compareid']) && $_GET['compareid'] > 0)
+		{
+			$id = $_GET['compareid'];
+			$userId = $sqlDrv->scalarQuery("SELECT value FROM pd_namedmetadata WHERE id=$id AND name='Userid'");
+			if ($userId == $user->data['user_id']) // verify it belongs to user
+			{
+				$rows = $sqlDrv->arrayQuery("SELECT 
+					#p.id AS id,
+					#d.setid AS setid,
+					#p.category AS category,
+					#p.unit AS unit,
+					p.name AS name,
+					d.value AS value
+				FROM pd_parameters p
+					JOIN pd_data d
+				WHERE
+					p.id = d.parameter AND
+					d.setid = $id");
+				$answers = $sqlDrv->mapQuery("SELECT name, value FROM pd_namedmetadata WHERE id = $id AND (name = 'Version' OR name = 'Hardware Variant')", "name");
 				//print_r($answers); //debug
 			}else{
 				$userId = $user->data['user_id'];
@@ -522,7 +522,22 @@ else if(isset($_GET['questions']))
 {
 	$data = [];
 
-	if(isset($_GET['compareid']))
+	if(!empty($_GET['token'])) //Existing Parameter
+	{
+		$token = $_GET['token'];
+		$answers = $sqlDrv->mapQuery("SELECT 
+				m.setid as setid,
+				m.metaitem AS id,
+				m.value AS value
+			FROM pd_metadata m
+				JOIN pd_subscription s
+			WHERE
+				m.setid = s.id AND
+				s.token = '$token'", "id");
+		//print_r($answers); //debug
+		$notes = $sqlDrv->scalarQuery("SELECT notes FROM pd_datasets WHERE id=". $answers['setid']);
+	}
+	else if(isset($_GET['compareid']))
 	{
 		$id = $_GET['compareid'];
 		$answers = $sqlDrv->mapQuery("SELECT 
@@ -534,9 +549,9 @@ else if(isset($_GET['questions']))
 				m.setid = d.metadata AND
 				d.id = $id", "id");
 		$notes = $sqlDrv->scalarQuery("SELECT notes FROM pd_datasets WHERE id=$id");
-		$data[] = [ "value" => $notes, "type" => "notes" ];
 		//print_r($answer); //debug
 	}
+	$data[] = [ "value" => $notes, "type" => "notes" ];
 
 	$rows = $sqlDrv->arrayQuery("SELECT id, name, question, type, options FROM pd_metaitems WHERE question IS NOT NULL");
 
@@ -561,22 +576,6 @@ else if(isset($_GET['questions']))
 		else if(isset($_SESSION['filter'])) //Filter
 		{
 			$question += ['value' => $_SESSION['filter'][$row['id']]];
-		
-		}
-		else if(isset($_GET['token'])) //Existing Parameter
-		{
-			$token = $_GET['token'];
-			$answers = $sqlDrv->mapQuery("SELECT 
-					m.metaitem AS id,
-					m.value AS value
-				FROM pd_metadata m
-					JOIN pd_subscription s
-				WHERE
-					m.setid = s.id AND
-					s.token = '$token'", "id");
-			//print_r($answers); //debug
-
-			$question += ['value' => $answers[$row['id']]];
 		}else{
 			$question += ['value' => null];
 		}

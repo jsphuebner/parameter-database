@@ -7,9 +7,9 @@ create table pd_metaitems (
     PRIMARY KEY (`id`)
 );
 
-insert pd_metaitems (name,question,type,options) values ("Version","Firmware Version?", "select", "SINE, FOC");
+insert pd_metaitems (name,question,type,options) values ("Firmware Version","Firmware Version?", "select", "SINE, FOC");
 insert pd_metaitems (name) values ("Timestamp");
-insert pd_metaitems (name,question,type,options) values ("Version","Hardware Version?", "select");
+insert pd_metaitems (name,question,type,options) values ("Hardware Variant","Hardware Version?", "select");
 insert pd_metaitems (name) values ("Userid");
 insert pd_metaitems (name,question,type,options) values 
 ("Motor Type","Which motor are you using?","text",null),

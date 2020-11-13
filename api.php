@@ -361,6 +361,10 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 		//NEW parameters
 		$data = clone($_SESSION['data']);
 
+		if(isset($data->error)) {
+			die(json_encode($data));
+		}
+
 		//EXISTING parameters
 		if(isset($_GET['compareid']) && $_GET['compareid'] > 0)
 		{
@@ -476,25 +480,28 @@ else if(isset($_FILES['data']) || isset($_POST['data'])) // pre-submit remmember
 	if (isset($_FILES['data'])) {
 		$data = file_get_contents($_FILES['data']['tmp_name']);
 	}else{
-		$data  = $_POST['data'];
+		$data = $_POST['data'];
 	}
+
+	$data = rtrim($data, "\0");
 	$data = json_decode($data);
 
 	unset($_SESSION['data']);
 
-	//regulat json import support
-	if(!$data->version->enums) {
-		$data->version->enums = parseEnum($data->version->unit);
-		$data->hwver->enums = parseEnum($data->hwver->unit);
+	if (json_last_error() !== JSON_ERROR_NONE) {
+	   //$data->error = 'json';
+	  	$data = (object)['error'=>'json'];
+	}else if(!isset($data->version->value)) {
+		$data = (object)['error'=>'validation'];
+	}else{
+		//regulat json import support
+		if(!isset($data->version->enums)) {
+			$data->version->enums = parseEnum($data->version->unit);
+			$data->hwver->enums = parseEnum($data->hwver->unit);
+		}
 	}
 
-	if (json_last_error() !== JSON_ERROR_NONE) {
-	    $_SESSION['data'] = json_decode(json_encode(['error'=>'json']));
-	}else if(!$data->version) {
-		$_SESSION['data'] = json_decode(json_encode(['error'=>'validation']));
-	}else{
-		$_SESSION['data'] = $data;
-	}
+	$_SESSION['data'] = $data;
 
 	if (!$user->data['is_registered']) {
 		

@@ -23,7 +23,6 @@ function buildDocument(compareid)
             {
             	document.getElementById('parameter-error').classList.add('hidden');
             	document.getElementById('parameter-upload').classList.add('hidden');
-            	document.getElementById('parameter-addnew-update').classList.remove('hidden');
 
             	if(json['error'] == undefined)
             	{
@@ -32,6 +31,7 @@ function buildDocument(compareid)
 
 		            if (json.EXISTING && compareid < 0) //compareid < 0 when page is first built
 		            {
+		            	document.getElementById('parameter-addnew-update').classList.remove('hidden');
 		            	var select = document.getElementById("compareid");
 		            	select.innerHTML = "<option value=0>&lt;Create New&gt;</option>";
 		            	

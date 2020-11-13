@@ -47,11 +47,11 @@ if(isset($_GET['id']))
 
 				$timestamp = date('Y-m-d H:i:s');
 				if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-				    $ip = $_SERVER['HTTP_CLIENT_IP'];
+					$ip = $_SERVER['HTTP_CLIENT_IP'];
 				}else if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-				    $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+					$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
 				} else {
-				    $ip = $_SERVER['REMOTE_ADDR'];
+					$ip = $_SERVER['REMOTE_ADDR'];
 				}
 
 				$sqlDrv->query("START TRANSACTION");
@@ -375,8 +375,8 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 			FROM pd_namedmetadata m
 				JOIN pd_subscription s
 			WHERE
-		        s.id = m.id AND
-		        m.name = 'UserId' AND
+				s.id = m.id AND
+				m.name = 'UserId' AND
 				s.token = '$token'");
 			if ($userId == $user->data['user_id']) // verify it belongs to user
 			{
@@ -660,8 +660,8 @@ else if(isset($_GET['token']))
 	FROM pd_namedmetadata m
 		JOIN pd_subscription s
 	WHERE
-        s.id = m.id AND
-        m.name = 'Timestamp' AND
+		s.id = m.id AND
+		m.name = 'Timestamp' AND
 		s.token = '$token'");
 
 	$rows = $sqlDrv->arrayQuery("SELECT 

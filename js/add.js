@@ -8,229 +8,229 @@ function buildDocument(compareid)
 	document.getElementById('parameter-questions').innerHTML = "";
 	document.getElementById('parameter-data').innerHTML = "";
 
-    var xhr = new XMLHttpRequest();
-    xhr.responseType = 'json';
-    xhr.onload = function() {
-        if (xhr.status == 200) {
-            var json = xhr.response;
-            console.log(json);
+	var xhr = new XMLHttpRequest();
+	xhr.responseType = 'json';
+	xhr.onload = function() {
+		if (xhr.status == 200) {
+			var json = xhr.response;
+			console.log(json);
 
-            var error = document.getElementById('parameter-error');
-            var table = document.getElementById('parameter-data');
-            var tbody = document.createElement('tbody');
+			var error = document.getElementById('parameter-error');
+			var table = document.getElementById('parameter-data');
+			var tbody = document.createElement('tbody');
 
-            if(Object.keys(json).length > 0)
-            {
-            	document.getElementById('parameter-error').classList.add('hidden');
-            	document.getElementById('parameter-upload').classList.add('hidden');
+			if(Object.keys(json).length > 0)
+			{
+				document.getElementById('parameter-error').classList.add('hidden');
+				document.getElementById('parameter-upload').classList.add('hidden');
 
-            	if(json['error'] == undefined)
-            	{
-		            var category = [];
-		            var t = 0;
+				if(json['error'] == undefined)
+				{
+					var category = [];
+					var t = 0;
 
-		            if (json.EXISTING && compareid < 0) //compareid < 0 when page is first built
-		            {
-		            	document.getElementById('parameter-addnew-update').classList.remove('hidden');
-		            	var select = document.getElementById("compareid");
-		            	select.innerHTML = "<option value=0>&lt;Create New&gt;</option>";
-		            	
-		            	for (var i in json.EXISTING) {
-		            		var option = document.createElement('option');
-		            		option.value = json.EXISTING[i].id;
-		            		option.textContent = json.EXISTING[i].description;
-		            		select.appendChild(option);
-		            	}
-		            }
+					if (json.EXISTING && compareid < 0) //compareid < 0 when page is first built
+					{
+						document.getElementById('parameter-addnew-update').classList.remove('hidden');
+						var select = document.getElementById("compareid");
+						select.innerHTML = "<option value=0>&lt;Create New&gt;</option>";
+						
+						for (var i in json.EXISTING) {
+							var option = document.createElement('option');
+							option.value = json.EXISTING[i].id;
+							option.textContent = json.EXISTING[i].description;
+							select.appendChild(option);
+						}
+					}
 
-		            for(var key in json)
-		            {
-		                if(t == 0) //create table header
-		                {
-		                    var row = document.createElement('thead');
-		                    row.className = 'thead-inverse';
+					for(var key in json)
+					{
+						if(t == 0) //create table header
+						{
+							var row = document.createElement('thead');
+							row.className = 'thead-inverse';
 
 							if(json['DIFF'] != undefined)
-		                    {
+							{
 								var col = document.createElement('th');
-			                    col.textContent = 'update';
-			                    row.appendChild(col);
-		                    }
-		                    var col = document.createElement('th');
-		                    col.textContent = 'parameter';
-		                    row.appendChild(col);
+								col.textContent = 'update';
+								row.appendChild(col);
+							}
+							var col = document.createElement('th');
+							col.textContent = 'parameter';
+							row.appendChild(col);
 
-		                    colspan = Object.keys(json[key]);
-	                    	if(json['DIFF'] != undefined)
-	                    	{
-	                    		var col = document.createElement('th');
-		                        col.textContent = 'old value';
-		                        row.appendChild(col);
-		                        var col = document.createElement('th');
-		                        col.textContent = 'new value';
-		                        row.appendChild(col);
-		                    }
-		                    else
-		                    {
-				               	var col = document.createElement('th');
-			                    col.textContent = 'value';
-			                    row.appendChild(col);
-		                    }
+							colspan = Object.keys(json[key]);
+							if(json['DIFF'] != undefined)
+							{
+								var col = document.createElement('th');
+								col.textContent = 'old value';
+								row.appendChild(col);
+								var col = document.createElement('th');
+								col.textContent = 'new value';
+								row.appendChild(col);
+							}
+							else
+							{
+							   	var col = document.createElement('th');
+								col.textContent = 'value';
+								row.appendChild(col);
+							}
 
-		                    table.appendChild(row);
-		                }
-		                
-		                if(!category.includes(json[key].category)) //create category header
-		                {
-		                    //console.log(json[key].category);
-		                    if(json[key].category != undefined)
-		                    {
-		                        category.push(json[key].category);
+							table.appendChild(row);
+						}
+						
+						if(!category.includes(json[key].category)) //create category header
+						{
+							//console.log(json[key].category);
+							if(json[key].category != undefined)
+							{
+								category.push(json[key].category);
 
-		                        var row = document.createElement('tr');
-		                        row.className = 'text-light bg-secondary';
-		                        
-		                        var colspan = 3;
-		                        if(json['DIFF'] != undefined)
-		                        	colspan += 2;
-		                        var col = document.createElement('td');
-		                        col.setAttribute('colspan', colspan);
-		                        col.textContent = json[key].category;
+								var row = document.createElement('tr');
+								row.className = 'text-light bg-secondary';
+								
+								var colspan = 3;
+								if(json['DIFF'] != undefined)
+									colspan += 2;
+								var col = document.createElement('td');
+								col.setAttribute('colspan', colspan);
+								col.textContent = json[key].category;
 
-		                        row.appendChild(col);
-		                        tbody.appendChild(row);
-		                    }
-		                }
-		                
-		                var row = document.createElement('tr');
-		                if(json[key].category != undefined)
-		                {
-		                	if(json['DIFF'] != undefined)
-		                    {
+								row.appendChild(col);
+								tbody.appendChild(row);
+							}
+						}
+						
+						var row = document.createElement('tr');
+						if(json[key].category != undefined)
+						{
+							if(json['DIFF'] != undefined)
+							{
 								var col = document.createElement('td');
 
-		                    	if(json['DIFF'][key] != undefined) {
-		                    		if (json['DIFF'][key]['value']['old'] != undefined) {
-		                    			row.className = 'bg-warning';
-		                    		}else if (json['DIFF'][key]['value']['add'] != undefined) {
-		                    			row.className = 'bg-success';
-		                    		}else if (json['DIFF'][key]['value']['delete'] != undefined) {
-		                    			row.className = 'bg-danger';
-		                    		}
-		                    		var checkbox = document.createElement('input');
-			                        checkbox.className = 'form-check-input';
-			                        checkbox.setAttribute('type', 'checkbox');
-			                        checkbox.setAttribute('id', key);
-			                        checkbox.checked = true;
-			                        col.appendChild(checkbox);
-		                    	}
+								if(json['DIFF'][key] != undefined) {
+									if (json['DIFF'][key]['value']['old'] != undefined) {
+										row.className = 'bg-warning';
+									}else if (json['DIFF'][key]['value']['add'] != undefined) {
+										row.className = 'bg-success';
+									}else if (json['DIFF'][key]['value']['delete'] != undefined) {
+										row.className = 'bg-danger';
+									}
+									var checkbox = document.createElement('input');
+									checkbox.className = 'form-check-input';
+									checkbox.setAttribute('type', 'checkbox');
+									checkbox.setAttribute('id', key);
+									checkbox.checked = true;
+									col.appendChild(checkbox);
+								}
 
-		                        row.appendChild(col);
-		                    }
-		                    var col = document.createElement('td');
-		                    col.textContent = key;
-		                    row.appendChild(col);
+								row.appendChild(col);
+							}
+							var col = document.createElement('td');
+							col.textContent = key;
+							row.appendChild(col);
 
-		                    colspan = Object.keys(json[key]);
-	                    	if(json['DIFF'] != undefined)
-	                    	{
-		                    	if (json['DIFF'][key] != undefined)
-		                    	{
+							colspan = Object.keys(json[key]);
+							if(json['DIFF'] != undefined)
+							{
+								if (json['DIFF'][key] != undefined)
+								{
 									addValueToRow(row, json['DIFF'][key].value.old, json[key].unit, json[key].enums)
 									addValueToRow(row, json['DIFF'][key].value.new, json[key].unit, json[key].enums)
 								}else{
 									addValueToRow(row, json[key].value, json[key].unit, json[key].enums)
 									addValueToRow(row, json[key].value, json[key].unit, json[key].enums)
 								}
-			                }
-			                else
-			                {
+							}
+							else
+							{
 								addValueToRow(row, json[key].value, json[key].unit, json[key].enums)
-		                    }
-		                }
-		                tbody.appendChild(row);
-		                
-		                t++;
-		            }
+							}
+						}
+						tbody.appendChild(row);
+						
+						t++;
+					}
 
-	            	var qxhr = new XMLHttpRequest();
-				    qxhr.responseType = 'json';
-				    qxhr.onload = function() {
-				        if (qxhr.status == 200) {
-				            var qjson = qxhr.response;
-				            console.log(qjson);
+					var qxhr = new XMLHttpRequest();
+					qxhr.responseType = 'json';
+					qxhr.onload = function() {
+						if (qxhr.status == 200) {
+							var qjson = qxhr.response;
+							console.log(qjson);
 
 							var form = document.getElementById('parameter-questions');
 
 							var h = document.createElement('h2');
-					    	h.textContent = 'Questions';
-					    	form.appendChild(h);
+							h.textContent = 'Questions';
+							form.appendChild(h);
 
 							buildQuestionForm(qjson,form, undefined, [1,3]);
 
-					        var fieldset = document.createElement('div');
-				            fieldset.className = 'form-group';
+							var fieldset = document.createElement('div');
+							fieldset.className = 'form-group';
 							var textarea = document.createElement('textarea');
 							textarea.className = 'form-control mb-3';
-				            textarea.setAttribute('name', 'notes');
-				            textarea.setAttribute('id', 'notes');
-				            textarea.setAttribute('placeholder', 'Notes');
+							textarea.setAttribute('name', 'notes');
+							textarea.setAttribute('id', 'notes');
+							textarea.setAttribute('placeholder', 'Notes');
 							//textarea.style = 'min-width: 100%';
 							if (qjson[0].type == "notes")
 							{
 								textarea.value = qjson[0].value;
 							}
 							
-				    		fieldset.appendChild(textarea);
-				    		form.appendChild(fieldset);
+							fieldset.appendChild(textarea);
+							form.appendChild(fieldset);
 
-				    		var table = document.createElement('table');
+							var table = document.createElement('table');
 							var tr = document.createElement('tr');
 
-				    		if(json['DIFF'] != undefined) {
-				    			var td = document.createElement('td');
+							if(json['DIFF'] != undefined) {
+								var td = document.createElement('td');
 
-				    			var id = document.createElement('input');
-							    id.setAttribute('type', 'hidden');
-							    id.setAttribute('name', 'id');
-							    id.setAttribute('hidden', true);
-							    id.setAttribute('value', compareid);
-							    form.appendChild(id);
+								var id = document.createElement('input');
+								id.setAttribute('type', 'hidden');
+								id.setAttribute('name', 'id');
+								id.setAttribute('hidden', true);
+								id.setAttribute('value', compareid);
+								form.appendChild(id);
 
-						       	var token = document.createElement('input');
-							    token.setAttribute('type', 'text');
-							    token.setAttribute('name', 'token');
-							    token.setAttribute('hidden', true);
-							    token.setAttribute('value', window.location.search.substr(1).replace('token=',''));
+							   	var token = document.createElement('input');
+								token.setAttribute('type', 'text');
+								token.setAttribute('name', 'token');
+								token.setAttribute('hidden', true);
+								token.setAttribute('value', window.location.search.substr(1).replace('token=',''));
 								form.appendChild(token);
 
-				    			var submitUpdate = document.createElement('button');
-					            submitUpdate.setAttribute('type', 'submit');
-					            submitUpdate.setAttribute('name', 'update');
+								var submitUpdate = document.createElement('button');
+								submitUpdate.setAttribute('type', 'submit');
+								submitUpdate.setAttribute('name', 'update');
 								submitUpdate.className = 'btn btn-warning mr-3';
 								submitUpdate.textContent = 'Update Parameters';
 								submitUpdate.onclick = function() {
-				                    this.setAttribute('value', cherryPick());
+									this.setAttribute('value', cherryPick());
 								}
 								td.appendChild(submitUpdate);
 								tr.appendChild(td);
-				    		}else{
-				    			var td = document.createElement('td');
-					    		var submitNew = document.createElement('button');
-					            submitNew.setAttribute('type', 'submit');
-					            submitNew.setAttribute('name', 'addnew');
+							}else{
+								var td = document.createElement('td');
+								var submitNew = document.createElement('button');
+								submitNew.setAttribute('type', 'submit');
+								submitNew.setAttribute('name', 'addnew');
 								submitNew.className = 'btn btn-secondary mr-3';
 								submitNew.textContent = 'Add New Parameters';
 								td.appendChild(submitNew);
 								tr.appendChild(td);
-				    		}
+							}
 
 							table.appendChild(tr);
-				    		form.appendChild(table);
-				        }
-				    };
-				    qxhr.open('GET', 'api.php?questions&compareid=' + compareid + "&" + window.location.search.substr(1), true);
-				    qxhr.send();
+							form.appendChild(table);
+						}
+					};
+					qxhr.open('GET', 'api.php?questions&compareid=' + compareid + "&" + window.location.search.substr(1), true);
+					qxhr.send();
 				}else if(json['error'] == 'login') {
 					error.appendChild(buildLogin());
 				}else if(json['error'] == 'firmware') {
@@ -246,28 +246,28 @@ function buildDocument(compareid)
 					error.textContent = 'Upload Error. Requires full JSON output with categories. Snapshot files are not valid.';
 					document.getElementById('parameter-upload').classList.remove('hidden');
 				}
-            }else{
-            	document.getElementById('parameter-upload').classList.remove('hidden');
-            	document.getElementById('parameter-addnew-update').classList.add('hidden');
-            }
+			}else{
+				document.getElementById('parameter-upload').classList.remove('hidden');
+				document.getElementById('parameter-addnew-update').classList.add('hidden');
+			}
 
-            table.appendChild(tbody);
-        }
-    };
-    xhr.open('GET', 'api.php?submit&compareid=' + compareid + "&" + window.location.search.substr(1), true);
-    xhr.send();
+			table.appendChild(tbody);
+		}
+	};
+	xhr.open('GET', 'api.php?submit&compareid=' + compareid + "&" + window.location.search.substr(1), true);
+	xhr.send();
 }
 
 function addValueToRow(row, value, unit, enumeration)
 {
-    var col = document.createElement('td');
-    
-    if (enumeration) {
-	    col.textContent = enumeration[value];
-    } else {
-	    col.textContent = value + " " + unit;
-    }
-    row.appendChild(col);
+	var col = document.createElement('td');
+	
+	if (enumeration) {
+		col.textContent = enumeration[value];
+	} else {
+		col.textContent = value + " " + unit;
+	}
+	row.appendChild(col);
 }
 
 function cherryPick()

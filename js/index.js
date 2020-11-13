@@ -112,7 +112,7 @@ document.addEventListener("DOMContentLoaded", function(event)
 
                     var coll = document.getElementsByClassName('collapsible')[0];
                     var content = document.getElementById('collapsible-content');
-                    if(filter != undefined)
+                    if(Object.keys(filter).length > 0)
                         content.classList.remove('hidden');
                     coll.addEventListener('click', function() {
                         this.classList.toggle('active');

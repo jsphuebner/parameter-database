@@ -45,7 +45,6 @@ function buildDocument(compareid)
 
 		            for(var key in json)
 		            {
-		            	if (json[key].category == "Testing") continue; //Ignore test parameters
 		                if(t == 0) //create table header
 		                {
 		                    var row = document.createElement('thead');
@@ -62,28 +61,21 @@ function buildDocument(compareid)
 		                    row.appendChild(col);
 
 		                    colspan = Object.keys(json[key]);
-		                    for (i = 1; i < colspan.length-2; i++)
-		                    {
-		                    	if(json['DIFF'] != undefined)
-		                    	{
-			                    	if (i == 1){
-			                    		var col = document.createElement('th');
-				                        col.textContent = 'old value';
-				                        row.appendChild(col);
-				                        var col = document.createElement('th');
-				                        col.textContent = 'new value';
-				                        row.appendChild(col);
-				                        continue;
-			                    	}
-			                    }
-			                   	var col = document.createElement('th');
-		                        col.textContent = colspan[i];
+	                    	if(json['DIFF'] != undefined)
+	                    	{
+	                    		var col = document.createElement('th');
+		                        col.textContent = 'old value';
+		                        row.appendChild(col);
+		                        var col = document.createElement('th');
+		                        col.textContent = 'new value';
 		                        row.appendChild(col);
 		                    }
-
-		                    var col = document.createElement('th');
-		                    col.textContent = colspan[0];
-		                    row.appendChild(col);
+		                    else
+		                    {
+				               	var col = document.createElement('th');
+			                    col.textContent = 'value';
+			                    row.appendChild(col);
+		                    }
 
 		                    table.appendChild(row);
 		                }
@@ -98,7 +90,7 @@ function buildDocument(compareid)
 		                        var row = document.createElement('tr');
 		                        row.className = 'text-light bg-secondary';
 		                        
-		                        var colspan = Object.keys(json[key]).length;
+		                        var colspan = 3;
 		                        if(json['DIFF'] != undefined)
 		                        	colspan += 2;
 		                        var col = document.createElement('td');
@@ -140,38 +132,21 @@ function buildDocument(compareid)
 		                    row.appendChild(col);
 
 		                    colspan = Object.keys(json[key]);
-		                    for (i = 1; i < colspan.length-2; i++)
-		                    {
-		                    	if(json['DIFF'] != undefined)
+	                    	if(json['DIFF'] != undefined)
+	                    	{
+		                    	if (json['DIFF'][key] != undefined)
 		                    	{
-				                    if(i == 1) {
-				                    	if (json['DIFF'][key] != undefined)
-				                    	{
-											var col = document.createElement('td');
-											//col.className = 'bg-danger';
-											col.textContent = json['DIFF'][key].value.old;
-											row.appendChild(col);
-
-											var col = document.createElement('td');
-											//col.className = 'bg-success';
-											col.textContent = json['DIFF'][key].value.new;
-											row.appendChild(col);
-											continue;
-										}else{
-											var col = document.createElement('td');
-			                        		col.textContent = json[key][colspan[i]];
-			                        		row.appendChild(col);
-										}
-				                    }
-				                }
-		                        var col = document.createElement('td');
-		                        col.textContent = json[key][colspan[i]];
-		                        row.appendChild(col);
+									addValueToRow(row, json['DIFF'][key].value.old, json[key].unit, json[key].enums)
+									addValueToRow(row, json['DIFF'][key].value.new, json[key].unit, json[key].enums)
+								}else{
+									addValueToRow(row, json[key].value, json[key].unit, json[key].enums)
+									addValueToRow(row, json[key].value, json[key].unit, json[key].enums)
+								}
+			                }
+			                else
+			                {
+								addValueToRow(row, json[key].value, json[key].unit, json[key].enums)
 		                    }
-
-		                    var col = document.createElement('td');
-		                    col.textContent = json[key][colspan[0]];
-		                    row.appendChild(col);
 		                }
 		                tbody.appendChild(row);
 		                
@@ -281,6 +256,18 @@ function buildDocument(compareid)
     };
     xhr.open('GET', 'api.php?submit&compareid=' + compareid + "&" + window.location.search.substr(1), true);
     xhr.send();
+}
+
+function addValueToRow(row, value, unit, enumeration)
+{
+    var col = document.createElement('td');
+    
+    if (enumeration) {
+	    col.textContent = enumeration[value];
+    } else {
+	    col.textContent = value + " " + unit;
+    }
+    row.appendChild(col);
 }
 
 function cherryPick()

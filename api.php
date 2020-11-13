@@ -117,7 +117,7 @@ if(isset($_GET['id']))
 	else if(isset($_GET['download']))
 	{
 		$metadata = $sqlDrv->mapQuery("SELECT name,value FROM pd_namedmetadata WHERE id=$id", "name");
-		$httpHeader = "Content-Disposition: attachment; filename=\"" . $metadata["Hardware Variant"] . "-" . $metadata["Version"] . "-";
+		$httpHeader = "Content-Disposition: attachment; filename=\"" . $metadata["Hardware Variant"] . "-" . $metadata["Firmware Version"] . "-";
 
 		$sql = "SELECT category, name, unit, value FROM pd_namedata WHERE setid=$id";
 		if(isset($_GET['filter']))
@@ -253,6 +253,7 @@ else if(isset($_POST['update'])) // update existing parameters
 		//MetaData Updates (no $hwVer it should stay the same)
 		$sqlDrv->query("UPDATE pd_metadata SET value='$swVer' WHERE setid=$id AND metaitem=1");
 		$sqlDrv->query("UPDATE pd_metadata SET value=NOW() WHERE setid=$id AND metaitem=2");
+		$sqlDrv->query("UPDATE pd_datasets SET notes='$notes' WHERE id=$id");
 
 		//Parameters Updates
 		$rows = explode(':', $_POST['update']);
@@ -400,7 +401,7 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 					JOIN pd_subscription s
 				WHERE
 					m.id = s.id AND
-					(m.name = 'Version' OR m.name = 'Hardware Variant') AND
+					(m.name = 'Firmware Version' OR m.name = 'Hardware Variant') AND
 					s.token = '$token'", "name");
 				//print_r($answers); //debug
 			}else{
@@ -425,7 +426,7 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 				WHERE
 					p.id = d.parameter AND
 					d.setid = $id");
-				$answers = $sqlDrv->mapQuery("SELECT name, value FROM pd_namedmetadata WHERE id = $id AND (name = 'Version' OR name = 'Hardware Variant')", "name");
+				$answers = $sqlDrv->mapQuery("SELECT name, value FROM pd_namedmetadata WHERE id = $id AND (name = 'Firmware Version' OR name = 'Hardware Variant')", "name");
 				//print_r($answers); //debug
 			}else{
 				$userId = $user->data['user_id'];
@@ -444,21 +445,21 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 		if (isset($rows) && isset($answers)) {
 
 			$swVer = explode("-", $data->version->enums[$data->version->value])[1];
-			$dbSwVariant = explode("-", $answers['Version'])[1];
+			$dbSwVariant = explode("-", $answers['Firmware Version'])[1];
 
 			//Check make sure Version (Sine/FOC) + Hardware match
 			if ($answers['Hardware Variant'] != $hwVer) {
 				die(json_encode(['error'=>'hardware']));
 			}
 			if ($dbSwVariant != $swVer) {
-				die(json_encode(['error'=>'firmware']));
+				die(json_encode(['error'=>'firmware', 'dbfw' => $dbSwVariant, 'submitfw' => $swVer]));
 			}
 
 			foreach ($rows as $row)
 			{
 				if($data->{$row['name']}->value != floatval($row['value'])) {
 					//print_r($row['name'] . " " .floatval($row['value']). ">". $data->{$row['name']}->value); //debug
-					$data->DIFF = (object)[];
+					if (!$data->DIFF) $data->DIFF = (object)[];
 					$data->DIFF->{$row['name']} = (object)[];
 					$data->DIFF->{$row['name']}->value = (object)[];
 					$data->DIFF->{$row['name']}->value->old = floatval($row['value']);
@@ -501,7 +502,8 @@ else if(isset($_FILES['data']) || isset($_POST['data'])) // pre-submit remmember
 		}
 	}
 
-	$_SESSION['data'] = $data;
+	//Filter 'Testing' parameters
+	$_SESSION['data'] = (object)array_filter((array)$data, function($attributes, $name) { return $attributes->category != 'Testing'; }, ARRAY_FILTER_USE_BOTH);
 
 	if (!$user->data['is_registered']) {
 		

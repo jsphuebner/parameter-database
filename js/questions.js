@@ -34,9 +34,12 @@ function buildQuestionForm(json,form,filter,exclude)
                         option.setAttribute('value', item);
                         option.textContent = item;
                         select.appendChild(option);
-                        if(filter[key] != undefined)
-                            if (item == filter[key])
+                        if(filter != undefined){
+                            if (filter[key] === item)
                                 select.selectedIndex = i;
+                        }else{
+                        	select.setAttribute('required', true);
+                        }
                         i++;
                     });
                 
@@ -56,8 +59,8 @@ function buildQuestionForm(json,form,filter,exclude)
                     input.setAttribute('type', 'hidden');
                     input.setAttribute('name', 'md[' + key + "]");
                     input.setAttribute('id', 'md' + key);
-                    if(filter[key] != undefined)
-                        input.setAttribute('value', filter[key]);
+                    if(filter != undefined)
+                        input.setAttribute('value', (filter[key] || ''));
                     fieldset.appendChild(input);
                     
                     json[index]['options'].split(',').forEach(function (item) {
@@ -70,8 +73,8 @@ function buildQuestionForm(json,form,filter,exclude)
                         checkbox.setAttribute('type', 'checkbox');
                         checkbox.setAttribute('id', '_md' + key);
                         checkbox.value = item;
-                        if(filter[key] != undefined) {
-                        	if (filter[key].indexOf(item) !=-1)
+                        if(filter != undefined && filter[key] != undefined) {
+                        	if (filter[key].indexOf(item) !== -1)
                             	checkbox.checked = true;
                         }else if(json[index]['value'] != null) {
                             if (json[index]['value'].indexOf(item) !=-1)
@@ -123,9 +126,9 @@ function buildQuestionForm(json,form,filter,exclude)
                     input.setAttribute('data-max', s[1]);
                     input.setAttribute('data-step', 1);
                     input.setAttribute('data-grid', true);
-                    if(filter[key] != undefined) {
-                        input.setAttribute('data-from', filter[key]);
-                        input.setAttribute('value', filter[key]);
+                    if(filter != undefined) {
+                        input.setAttribute('data-from', (filter[key] || 0));
+                        input.setAttribute('value', (filter[key] || ''));
                     }else if(json[index]['value'] != null) {
                         input.setAttribute('data-from', json[index]['value']);
                         input.setAttribute('value', json[index]['value']);
@@ -138,10 +141,12 @@ function buildQuestionForm(json,form,filter,exclude)
                     input.setAttribute('name', 'md[' + key + "]");
                     input.setAttribute('id', 'md' + key);
                     input.setAttribute('placeholder', json[index][key]);
-                    if(filter[key] != undefined) {
-                        input.setAttribute('value', filter[key]);
-                     }else if(json[index]['value'] != null) {
-                        input.setAttribute('value', json[index]['value']);
+                    if(filter != undefined) {
+                        input.setAttribute('value', (filter[key] || ''));
+                    }else{
+                    	if(json[index]['value'] != null)
+                        	input.setAttribute('value', json[index]['value']);
+                    	input.setAttribute('required', true);
                     }
                     fieldset.appendChild(input);
                 }

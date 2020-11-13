@@ -513,7 +513,6 @@ else if(isset($_FILES['data']) || isset($_POST['data'])) // pre-submit remmember
 }
 else if(isset($_GET['questions']))
 {
-	$sql = "SELECT id, name, question, type, options FROM pd_metaitems WHERE question IS NOT NULL";
 	$data = [];
 
 	if(isset($_GET['compareid']))
@@ -529,9 +528,12 @@ else if(isset($_GET['questions']))
 				d.id = $id", "id");
 		$notes = $sqlDrv->scalarQuery("SELECT notes FROM pd_datasets WHERE id=$id");
 		$data[] = [ "value" => $notes, "type" => "notes" ];
+		//print_r($answer); //debug
 	}
 
-	foreach ($sqlDrv->arrayQuery($sql) as $row)
+	$rows = $sqlDrv->arrayQuery("SELECT id, name, question, type, options FROM pd_metaitems WHERE question IS NOT NULL");
+
+	foreach ($rows as $row)
 	{
 		if($row['type'] == 'select' && $row['options'] == null) {
 			$options = $sqlDrv->arrayQuery("SELECT DISTINCT value as id FROM pd_metadata where metaitem=" .$row['id']);
@@ -540,18 +542,19 @@ else if(isset($_GET['questions']))
 			$options = $row['options'];
 		}
 		$question = [$row['id'] => stripslashes($row['question']),'type' => $row['type'],'options' => $options];
-
+		
 		//Pre-Fill Answers
-		if(isset($_SESSION['filter'])) //Filter
-		{
-			$question += ['value' => $_SESSION['filter'][$row['id']]];
-		}
-		else if(isset($answers[$row['id']])) //Existing Parameter
+		if(isset($answers[$row['id']])) //Existing Parameter
 		{
 			//$notes = $sqlDrv->scalarQuery("SELECT notes FROM pd_datasets WHERE id=$id");
 			//print_r($answers); //debug
 
 			$question += ['value' => $answers[$row['id']]];
+		}
+		else if(isset($_SESSION['filter'])) //Filter
+		{
+			$question += ['value' => $_SESSION['filter'][$row['id']]];
+		
 		}
 		else if(isset($_GET['token'])) //Existing Parameter
 		{

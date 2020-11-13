@@ -191,7 +191,7 @@ function buildDocument(compareid)
 					    	h.textContent = 'Questions';
 					    	form.appendChild(h);
 
-							buildQuestionForm(qjson,form, [], [1,3]);
+							buildQuestionForm(qjson,form, undefined, [1,3]);
 
 					        var fieldset = document.createElement('div');
 				            fieldset.className = 'form-group';

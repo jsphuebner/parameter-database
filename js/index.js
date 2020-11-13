@@ -95,6 +95,8 @@ document.addEventListener("DOMContentLoaded", function(event)
             ffxhr.onload = function() {
                 if (ffxhr.status == 200) {
                     var filter = ffxhr.response;
+                    if(filter == undefined)
+                        filter = [];
                     //console.log(filter);
 
                     var form = document.getElementById('database-filter');
@@ -110,9 +112,8 @@ document.addEventListener("DOMContentLoaded", function(event)
 
                     var coll = document.getElementsByClassName('collapsible')[0];
                     var content = document.getElementById('collapsible-content');
-                    if(Object.keys(filter).length > 0) {
+                    if(filter != undefined)
                         content.classList.remove('hidden');
-                    }
                     coll.addEventListener('click', function() {
                         this.classList.toggle('active');
                         content.classList.toggle('hidden');

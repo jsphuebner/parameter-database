@@ -436,7 +436,9 @@ else if(isset($_GET['submit'])) // pre-submit show $_SESSION['data'] back to use
 		}
 
 		$hwVer = $data->hwver->enums[$data->hwver->value];
-		$matchingIds = $sqlDrv->arrayQuery("SELECT m1.id FROM pd_namedmetadata m1, pd_namedmetadata m2 WHERE m1.id=m2.id AND m1.name='Userid' AND m2.name='Hardware Variant' AND m1.value=$userId  AND m2.value='$hwVer';", "id");
+		$matchingIds = $sqlDrv->arrayQuery("SELECT m1.id FROM pd_namedmetadata m1, pd_namedmetadata m2 WHERE m1.id=m2.id AND m1.name='Userid' AND m2.name='Hardware Variant' AND m1.value=$userId AND m2.value='$hwVer';", "id");
+		if(sizeof($matchingIds) == 0)
+			die(json_encode($data));
 		$matchingIds = implode(",", $matchingIds);
 		$existingsets = $sqlDrv->arrayQuery("SELECT id, description FROM pd_datasetdescriptions WHERE id IN ($matchingIds)");
 		

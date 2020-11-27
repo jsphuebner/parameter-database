@@ -21,11 +21,12 @@ function buildDocument(compareid)
 
 			if(Object.keys(json).length > 0)
 			{
-				document.getElementById('parameter-error').classList.add('hidden');
 				document.getElementById('parameter-upload').classList.add('hidden');
 
 				if(json['error'] == undefined)
 				{
+					document.getElementById('parameter-error').classList.add('hidden');
+					
 					var category = [];
 					var t = 0;
 

@@ -31,7 +31,21 @@ if(isset($_GET['id']))
 {
 	$id = $_GET['id'];
 
-	if(isset($_GET['rating']))
+	if(isset($_GET['autocomplete'])) //Lookup similar autocomplete text
+	{
+		$data = [];
+		$value = $_GET['autocomplete'];
+		if(strlen($value) > 3) //Minimum to prevent large lookups
+		{
+			$rows = $sqlDrv->arrayQuery("SELECT value FROM pd_metadata WHERE metaitem = $id AND value LIKE '%" .$value. "%' LIMIT 20");
+			$data = [];
+			foreach ($rows as $row) {
+				array_push($data,$row['value']);
+			}
+		}
+		echo(json_encode($data));
+	}
+	else if(isset($_GET['rating']))
 	{
 		$data = $sqlDrv->arrayQuery("SELECT rating, count, stamp, ip FROM pd_rating WHERE id=$id");
 		$rating = $_GET['rating'];
